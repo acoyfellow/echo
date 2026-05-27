@@ -7,9 +7,18 @@
  *   tools/call run    args: { plan: string }      → { planId }
  *   tools/call status args: { planId: string }    → { status, ... }
  *
- * Session is identified by ?id=<signed-session-id>. The signed id pins
- * the session to one origin; we dispatch through the EchoAgent DO whose
- * `idFromName(<unsigned-id>)` matches.
+ * The `plan` string is a function expression:
+ *
+ *   async ({ tab, log }) => {
+ *     const r = await tab.execute(`
+ *       const data = await fetch("/api/things", { credentials: "include" });
+ *       return await data.json();
+ *     `);
+ *     log("got " + r.result.length + " items");
+ *     return r.result;
+ *   }
+ *
+ * Session is identified by ?id=<signed-session-id>.
  */
 
 import { getAgentByName } from "agents";
@@ -19,23 +28,24 @@ import { verifySessionId } from "./auth";
 const TOOLS = [
   {
     name: "run",
-    description: "Submit a TypeScript plan to run against the user's authenticated tab. Plan must export a default async function ({ tab, log }) => unknown.",
+    description: "Submit a plan to run against the user's authenticated tab. The plan is a JS function expression `async ({ tab, log }) => unknown` that calls `await tab.execute(`<page-realm code>`)` to interact with the tab.",
     inputSchema: {
       type: "object",
       properties: {
-        plan: { type: "string", description: "ES module source (compiled, no TS syntax). `export default async function plan({ tab, log }) { ... }`" },
+        plan: {
+          type: "string",
+          description: "JS function expression: `async ({ tab, log }) => { ... }`. `tab.execute(code)` runs code in the page's realm; `log(...)` records to the receipt.",
+        },
       },
       required: ["plan"],
     },
   },
   {
     name: "status",
-    description: "Get the workflow status and step log for a plan.",
+    description: "Get the workflow status + step log for a plan.",
     inputSchema: {
       type: "object",
-      properties: {
-        planId: { type: "string" },
-      },
+      properties: { planId: { type: "string" } },
       required: ["planId"],
     },
   },
@@ -85,18 +95,12 @@ export async function handleMcp(req: Request, env: Env): Promise<Response> {
     try {
       if (name === "run") {
         const plan = String(args?.plan ?? "");
-        if (!plan) {
-          result = { error: "plan_required" };
-          isError = true;
-        } else {
-          result = await agent.run(plan);
-        }
+        if (!plan) { result = { error: "plan_required" }; isError = true; }
+        else result = await agent.run(plan);
       } else if (name === "status") {
         const planId = String(args?.planId ?? "");
-        if (!planId) {
-          result = { error: "planId_required" };
-          isError = true;
-        } else {
+        if (!planId) { result = { error: "planId_required" }; isError = true; }
+        else {
           result = await agent.status(planId);
           if (typeof result === "object" && result && "error" in result) isError = true;
         }

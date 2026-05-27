@@ -1,16 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2022", "WebWorker"],
-    "types": ["@cloudflare/workers-types", "bun-types"],
-    "strict": true,
-    "noImplicitAny": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "noEmit": true
-  },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.worker.json" },
+    { "path": "./tsconfig.extension.json" },
+    { "path": "./tsconfig.scripts.json" }
+  ]
 }

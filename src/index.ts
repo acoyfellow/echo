@@ -14,6 +14,7 @@ import type { Env } from "./types";
 
 export { EchoAgent } from "./agent";
 export { EchoPlan } from "./plan";
+export { TabBinding } from "./tab-binding";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -64,15 +65,15 @@ export default {
       return withCors(await handleMcp(req, env));
     }
 
-    // Agent SDK websocket routing. Path: /agents/EchoAgent/<sessionId>
-    // The token gating happens by checking the signed id == sessionId via auth.ts.
+    // Agent SDK websocket routing. Path: /agents/echo-agent/<sessionId>
+    // (camelCase class name kebab-cased by the SDK).
     if (url.pathname.startsWith("/agents/")) {
       const token = url.searchParams.get("token");
       const verified = token ? await verifySessionId(env.ECHO_SIGNING_SECRET, token) : null;
       if (!verified) return new Response("invalid_session", { status: 401 });
 
-      // Path must be /agents/EchoAgent/<verified.id>
-      const expected = `/agents/EchoAgent/${verified.id}`;
+      // Path must be /agents/echo-agent/<verified.id>
+      const expected = `/agents/echo-agent/${verified.id}`;
       if (url.pathname !== expected) return new Response("session_id_mismatch", { status: 401 });
 
       const resp = await routeAgentRequest(req, env);

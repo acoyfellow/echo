@@ -6,9 +6,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --port 8787 --inspector-port 0",
-    "dev:fresh": "pkill -f 'wrangler dev' 2>/dev/null; pkill workerd 2>/dev/null; sleep 1; wrangler dev --port 8787 --inspector-port 0",
+    "dev": "wrangler dev --port 8870 --inspector-port 0",
+    "dev:fresh": "pkill -f 'wrangler dev' 2>/dev/null; pkill workerd 2>/dev/null; sleep 1; wrangler dev --port 8870 --inspector-port 0",
     "deploy": "wrangler deploy",
+    "build:ext": "bun extension/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "setup:secret": "openssl rand -base64 48 | wrangler secret put ECHO_SIGNING_SECRET"
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "*",
+    "@types/chrome": "^0.1.42",
     "bun-types": "*",
     "typescript": "*",
     "wrangler": "*"

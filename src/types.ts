@@ -1,12 +1,8 @@
 /**
  * Shared types.
- *
- * Env is what wrangler.jsonc binds + the secret. Cloudflare's generated
- * runtime types declare `Cloudflare.Env` ambiently; we narrow it here.
  */
 
 import type { EchoAgent } from "./agent";
-import type { EchoPlan } from "./plan";
 
 export interface Env {
   ECHO_AGENT: DurableObjectNamespace<EchoAgent>;
@@ -18,28 +14,42 @@ export interface Env {
   ECHO_MAX_PLAN_BYTES: string;
 }
 
-export type Verb = "fetch" | "read" | "ask";
-
-export type FetchArgs = {
-  path: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: string;
+/**
+ * The plan binding the agent calls inside its plan body.
+ *
+ * One verb only:
+ *
+ *   await tab.execute(`
+ *     const r = await fetch("/rest/api/2/search?...", { credentials: "include" });
+ *     return await r.json();
+ *   `);
+ *
+ * The string body is evaluated in the content script in the page's realm.
+ * It has access to `document`, `window`, page-bound APIs, and `fetch` with
+ * the user's session credentials. The return value of the last expression
+ * is sent back to the plan facet.
+ *
+ * Safety posture: same as Codex's authenticated browser mode. The session
+ * is HMAC-pinned to one origin; the browser enforces same-origin; the user
+ * approves the session by clicking the extension icon; closing the tab
+ * revokes it. No additional per-call gate.
+ */
+export type ExecuteArgs = {
+  code: string;
+  /**
+   * Optional millisecond timeout (default 30s). The agent can set this
+   * higher for long-running work; the content script enforces it.
+   */
+  timeoutMs?: number;
 };
 
-export type ReadArgs = {
-  selector: string;
-  shape: Record<string, string>;
-  limit?: number;
+export type ExecuteResult = {
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+  detail?: string;
+  logs?: string[];
 };
-
-export type AskArgs = {
-  prompt: string;
-  options?: string[];
-  detail?: Record<string, unknown>;
-};
-
-export type CallResult = unknown;
 
 export type PlanParams = {
   planSource: string;

@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; width: 320px; margin: 0; padding: 16px; }
+    h1 { font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; }
+    .row { color: #888; font-size: 11px; margin: 4px 0; word-break: break-all; }
+    .url { word-break: break-all; font-size: 11px; padding: 6px; background: #f4f4f4; border-radius: 3px; margin: 8px 0; min-height: 1.4em; }
+    button { width: 100%; padding: 8px; margin-top: 8px; font: inherit; cursor: pointer; border: 1px solid #888; background: #fff; }
+    button:hover { background: #f0f0f0; }
+    .err { color: #c33; font-size: 11px; min-height: 1.3em; margin-top: 6px; }
+    .foot { margin-top: 12px; font-size: 11px; color: #888; }
+    .foot a { color: #888; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a1a; color: #eee; }
+      .url { background: #2a2a2a; }
+      button { background: #2a2a2a; color: #eee; border-color: #555; }
+      button:hover { background: #333; }
+    }
+  </style>
+</head>
+<body>
+  <h1>echo <span id="status">⛔ closed</span></h1>
+  <div class="row" id="origin"></div>
+  <div class="url" id="url"></div>
+  <button id="toggle">Open echo on this tab</button>
+  <button id="copy" disabled>copy mcp url</button>
+  <div class="err" id="err"></div>
+  <div class="foot"><a href="options.html" target="_blank">settings</a> · <a href="https://github.com/acoyfellow/echo" target="_blank">docs</a></div>
+  <script src="popup.js"></script>
+</body>
+</html>
