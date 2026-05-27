@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "echo",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true },
+
+  // Supervisor Agent DO — one per signed session.
+  "durable_objects": {
+    "bindings": [
+      { "name": "ECHO_AGENT", "class_name": "EchoAgent" }
+    ]
+  },
+
+  // First migration: SQLite-backed DO. Facets inherit storage class.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["EchoAgent"] }
+  ],
+
+  // Dynamic Workers — per-plan sandbox. globalOutbound:null at bind time.
+  "worker_loaders": [
+    { "binding": "LOADER" }
+  ],
+
+  // Dynamic Workflows — the plan workflow class.
+  "workflows": [
+    {
+      "name": "echo-plan",
+      "binding": "PLAN",
+      "class_name": "EchoPlan"
+    }
+  ],
+
+  "vars": {
+    "ECHO_MAX_SESSION_HOURS": "8",
+    "ECHO_MAX_PLAN_BYTES": "65536"
+  }
+  // ECHO_SIGNING_SECRET is a secret: `bun run setup:secret`
+}

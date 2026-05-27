@@ -1,0 +1,27 @@
+{
+  "name": "echo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A logged-in browser tab becomes a remote target for an MCP agent. The agent writes a plan; Cloudflare runs it as a Workflow whose steps call your tab.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --inspector-port 0",
+    "dev:fresh": "pkill -f 'wrangler dev' 2>/dev/null; pkill workerd 2>/dev/null; sleep 1; wrangler dev --port 8787 --inspector-port 0",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "setup:secret": "openssl rand -base64 48 | wrangler secret put ECHO_SIGNING_SECRET"
+  },
+  "dependencies": {
+    "agents": "*",
+    "hono": "*",
+    "zod": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "*",
+    "bun-types": "*",
+    "typescript": "*",
+    "wrangler": "*"
+  }
+}

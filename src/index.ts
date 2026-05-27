@@ -1,0 +1,85 @@
+/**
+ * echo — the worker entry.
+ *
+ *   POST /sessions      mint a signed session id  (extension calls this)
+ *   POST /mcp?id=<>     MCP JSON-RPC              (agents call this)
+ *   GET  /agents/...    Agent SDK WebSocket route (extension upgrades here)
+ *   GET  /health        version + mode
+ */
+
+import { routeAgentRequest } from "agents";
+import { mintSessionId, verifySessionId } from "./auth";
+import { handleMcp } from "./mcp";
+import type { Env } from "./types";
+
+export { EchoAgent } from "./agent";
+export { EchoPlan } from "./plan";
+
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type, mcp-session-id, authorization",
+  "access-control-expose-headers": "mcp-session-id",
+  "access-control-max-age": "86400",
+};
+
+function withCors(res: Response): Response {
+  const h = new Headers(res.headers);
+  for (const [k, v] of Object.entries(CORS)) h.set(k, v);
+  return new Response(res.body, { status: res.status, headers: h });
+}
+
+export default {
+  async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+    if (req.method === "OPTIONS") return withCors(new Response(null, { status: 204 }));
+
+    const url = new URL(req.url);
+
+    if (url.pathname === "/health") {
+      return withCors(Response.json({
+        ok: true,
+        version: "0.0.1",
+        mode: env.ECHO_HOSTED_INSTANCE === "dev" ? "dev" : "prod",
+      }));
+    }
+
+    if (url.pathname === "/sessions" && req.method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { origin?: string };
+      if (!body.origin) return withCors(Response.json({ error: "origin_required" }, { status: 400 }));
+      let parsed: URL;
+      try { parsed = new URL(body.origin); }
+      catch { return withCors(Response.json({ error: "bad_origin" }, { status: 400 })); }
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        return withCors(Response.json({ error: "bad_protocol" }, { status: 400 }));
+      }
+      if (parsed.pathname !== "/" && parsed.pathname !== "") {
+        return withCors(Response.json({ error: "origin_must_be_bare" }, { status: 400 }));
+      }
+      const lifetimeHours = Number(env.ECHO_MAX_SESSION_HOURS || "8");
+      const { id, signed } = await mintSessionId(env.ECHO_SIGNING_SECRET, parsed.origin, lifetimeHours);
+      return withCors(Response.json({ id, signed, origin: parsed.origin, lifetimeHours }));
+    }
+
+    if (url.pathname === "/mcp") {
+      return withCors(await handleMcp(req, env));
+    }
+
+    // Agent SDK websocket routing. Path: /agents/EchoAgent/<sessionId>
+    // The token gating happens by checking the signed id == sessionId via auth.ts.
+    if (url.pathname.startsWith("/agents/")) {
+      const token = url.searchParams.get("token");
+      const verified = token ? await verifySessionId(env.ECHO_SIGNING_SECRET, token) : null;
+      if (!verified) return new Response("invalid_session", { status: 401 });
+
+      // Path must be /agents/EchoAgent/<verified.id>
+      const expected = `/agents/EchoAgent/${verified.id}`;
+      if (url.pathname !== expected) return new Response("session_id_mismatch", { status: 401 });
+
+      const resp = await routeAgentRequest(req, env);
+      if (resp) return resp;
+      return new Response("agent_route_failed", { status: 404 });
+    }
+
+    return withCors(new Response("echo v0.0.1\n", { status: 200, headers: { "content-type": "text/plain" } }));
+  },
+} satisfies ExportedHandler<Env>;

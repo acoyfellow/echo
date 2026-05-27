@@ -1,0 +1,2 @@
+ECHO_SIGNING_SECRET="generate-with: openssl rand -base64 48"
+ECHO_HOSTED_INSTANCE="dev"
