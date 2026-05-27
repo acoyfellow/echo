@@ -1,32 +1,34 @@
 /**
  * Background service worker.
  *
- * Lifecycle:
- *   1. user clicks the toolbar icon → popup → "open echo on this tab"
- *   2. background mints a signed session id from the configured Worker
- *   3. opens WebSocket to /agents/EchoAgent/<sessionId>?origin=...&token=...
- *   4. when the agent submits a plan that calls tab.execute(code), the
- *      worker dispatches `{type:"execute", callId, code, timeoutMs}` over
- *      the WS; we forward to the content script in the active tab
- *   5. content script evals the code in the page realm and returns
- *      `{ok, result|error}`; we relay it back over the WS
+ * Uses `AgentClient` from the agents SDK. AgentClient is built on PartySocket
+ * which has reconnect, heartbeat, and MV3-service-worker-lifecycle handling
+ * already solved. Raw `new WebSocket()` in MV3 dies silently — don't.
  *
- * Tab close → session ends (chrome.tabs.onRemoved triggers a close).
+ * Lifecycle:
+ *   1. user clicks toolbar icon → popup → "open echo on this tab"
+ *   2. background mints a signed session id via POST /sessions
+ *   3. AgentClient connects to /agents/echo-agent/<sessionId>?origin=...&token=...
+ *   4. supervisor sends {type:"execute",callId,code,timeoutMs}; we forward
+ *      to the content script in the active tab
+ *   5. content script evals in the page realm and returns {ok, result|error};
+ *      we relay over the AgentClient
  */
+
+import { AgentClient } from "agents/client";
 
 const STORE = {
   workerBase: "workerBase",
 } as const;
-
-const DEFAULT_WORKER = "";
-const RECONNECT_BASE_MS = 500;
-const RECONNECT_MAX_MS = 30_000;
 
 const FORBIDDEN_PROTOCOLS = new Set([
   "chrome:", "chrome-extension:", "chrome-search:", "chrome-devtools:",
   "devtools:", "view-source:", "file:", "data:", "javascript:",
   "blob:", "about:", "edge:",
 ]);
+
+const HEARTBEAT_ALARM = "echo-keepalive";
+const HEARTBEAT_PERIOD_MIN = 0.4; // chrome alarms minimum is 0.5; we use 0.4 to be safe
 
 type SessionState = {
   workerBase: string;
@@ -37,13 +39,11 @@ type SessionState = {
 };
 
 let state: SessionState | null = null;
-let ws: WebSocket | null = null;
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let reconnectAttempt = 0;
+let client: AgentClient | null = null;
 let onRemovedListener: ((closedTabId: number) => void) | null = null;
 
 async function getWorkerBase(): Promise<string> {
-  const data = await chrome.storage.local.get({ [STORE.workerBase]: DEFAULT_WORKER });
+  const data = await chrome.storage.local.get({ [STORE.workerBase]: "" });
   return String(data[STORE.workerBase] || "").replace(/\/$/, "");
 }
 
@@ -62,60 +62,59 @@ function setBadge(s: "on" | "off"): void {
   chrome.action.setBadgeBackgroundColor({ color: s === "on" ? "#16a34a" : "#888" });
 }
 
-function scheduleReconnect(): void {
-  if (!state || reconnectTimer) return;
-  const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * Math.pow(2, reconnectAttempt)) + Math.random() * 250;
-  reconnectAttempt += 1;
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    if (state) connect(state.workerBase, state.signed, state.sessionId);
-  }, delay);
+function startKeepalive(): void {
+  chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: HEARTBEAT_PERIOD_MIN });
+}
+function stopKeepalive(): void {
+  chrome.alarms.clear(HEARTBEAT_ALARM);
 }
 
-function connect(workerBase: string, signed: string, sessionId: string): void {
+function connect(workerBase: string, signed: string, sessionId: string, origin: string): void {
   if (!state) return;
-  // Agents SDK convention: camelCase class name → kebab-case path segment.
-  // EchoAgent → echo-agent.
-  const u = new URL(workerBase + `/agents/echo-agent/${sessionId}`);
-  u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
-  u.searchParams.set("origin", state.origin);
-  u.searchParams.set("token", signed);
 
-  const sock = new WebSocket(u.toString());
-  ws = sock;
+  // Parse host out of workerBase so PartySocket can wss/ws on its own.
+  // Strip http(s):// and trailing slash.
+  const u = new URL(workerBase);
+  const host = u.host;
 
-  sock.addEventListener("open", () => {
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    reconnectAttempt = 0;
-    setBadge("on");
+  // SDK convention: pass the class name (PascalCase) as `agent` — AgentClient
+  // camelCases-to-kebabCases it internally to derive the URL segment. Same
+  // call ends up as /agents/echo-agent/<sessionId> on the wire.
+  client = new AgentClient({
+    agent: "EchoAgent",
+    name: sessionId,
+    host,
+    query: { origin, token: signed },
   });
 
-  sock.addEventListener("message", (e: MessageEvent) => {
+  client.addEventListener("open", () => {
+    setBadge("on");
+    startKeepalive();
+  });
+
+  client.addEventListener("message", (e: MessageEvent) => {
     if (!state) return;
     let msg: { type?: string; callId?: string; code?: string; timeoutMs?: number };
     try { msg = JSON.parse(String(e.data)); } catch { return; }
     if (msg.type !== "execute" || !msg.callId) return;
 
-    chrome.tabs.sendMessage(state.tabId, msg, (result) => {
+    chrome.tabs.sendMessage(state.tabId, msg, (result: { result?: unknown } | undefined) => {
       const err = chrome.runtime.lastError;
-      if (err || !result) {
-        sock.send(JSON.stringify({
-          type: "result",
-          callId: msg.callId,
-          result: { ok: false, error: err?.message ? "tab_unreachable" : "tab_unreachable" },
-        }));
-        return;
-      }
-      sock.send(JSON.stringify({ type: "result", callId: msg.callId, result: result.result }));
+      const out = err || !result
+        ? { ok: false, error: err?.message ? "tab_unreachable" : "tab_unreachable" }
+        : result.result;
+      try {
+        client?.send(JSON.stringify({ type: "result", callId: msg.callId, result: out }));
+      } catch { /* socket may have closed */ }
     });
   });
 
-  sock.addEventListener("close", () => {
+  client.addEventListener("close", () => {
     setBadge("off");
-    if (state) scheduleReconnect();
+    // PartySocket auto-reconnects; we don't need to schedule.
   });
 
-  sock.addEventListener("error", () => { try { sock.close(); } catch {} });
+  client.addEventListener("error", () => { /* PartySocket handles */ });
 }
 
 async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string; signed?: string; origin?: string; mcpUrl?: string }> {
@@ -131,7 +130,7 @@ async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string
   const workerBase = await getWorkerBase();
   if (!workerBase) return { ok: false, error: "worker_base_unset_open_options" };
 
-  const minted = await mint(workerBase, tabOrigin).catch((e) => ({ error: String(e) }));
+  const minted = await mint(workerBase, tabOrigin).catch((e) => ({ error: String(e) } as { error: string }));
   if ("error" in minted) return { ok: false, error: minted.error };
 
   state = {
@@ -141,8 +140,8 @@ async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string
     signed: minted.signed,
     tabId: tab.id,
   };
-  reconnectAttempt = 0;
-  connect(workerBase, minted.signed, minted.id);
+
+  connect(workerBase, minted.signed, minted.id, tabOrigin);
 
   if (onRemovedListener) chrome.tabs.onRemoved.removeListener(onRemovedListener);
   onRemovedListener = (closedTabId: number) => {
@@ -160,11 +159,10 @@ async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string
 }
 
 function closeLocal(): void {
-  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  try { ws?.close(); } catch {}
-  ws = null;
+  try { client?.close(); } catch {}
+  client = null;
   state = null;
-  reconnectAttempt = 0;
+  stopKeepalive();
   if (onRemovedListener) {
     chrome.tabs.onRemoved.removeListener(onRemovedListener);
     onRemovedListener = null;
@@ -172,7 +170,26 @@ function closeLocal(): void {
   setBadge("off");
 }
 
+// Keep-alive: the alarm fires every ~24s, the handler reads chrome.storage
+// which counts as activity. PartySocket already pings, but Chrome can
+// still suspend the SW if no chrome.* API is touched.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === HEARTBEAT_ALARM) {
+    chrome.storage.local.get({}, () => { /* keep-alive ping */ });
+  }
+});
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type === "wstest") {
+    // Hand-rolled WS test — confirm a raw WS from this SW reaches /agents/.
+    const url = String(msg.url || "");
+    const sock = new WebSocket(url);
+    sock.addEventListener("open", () => sendResponse({ result: "open" }));
+    sock.addEventListener("error", (e) => sendResponse({ result: "error", message: (e as ErrorEvent).message ?? "" }));
+    sock.addEventListener("close", (e) => sendResponse({ result: "close", code: (e as CloseEvent).code }));
+    setTimeout(() => sendResponse({ result: "timeout" }), 4000);
+    return true;
+  }
   if (msg?.type === "open") { open().then(sendResponse); return true; }
   if (msg?.type === "close") { closeLocal(); sendResponse({ ok: true }); return false; }
   if (msg?.type === "status") {

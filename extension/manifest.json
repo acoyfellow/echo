@@ -3,7 +3,7 @@
   "name": "echo",
   "version": "0.0.1",
   "description": "Your authenticated browser tab becomes a remote target for an MCP agent. The agent writes a plan; Cloudflare runs it; your tab does the work.",
-  "permissions": ["activeTab", "storage", "scripting", "tabs"],
+  "permissions": ["activeTab", "storage", "scripting", "tabs", "alarms"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
