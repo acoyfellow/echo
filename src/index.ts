@@ -10,6 +10,7 @@
 import { routeAgentRequest } from "agents";
 import { mintSessionId, verifySessionId } from "./auth";
 import { handleMcp } from "./mcp";
+import { renderLanding, renderDemo } from "./site";
 import type { Env } from "./types";
 
 export { EchoAgent } from "./agent";
@@ -81,6 +82,10 @@ export default {
       return new Response("agent_route_failed", { status: 404 });
     }
 
-    return withCors(new Response("echo v0.0.1\n", { status: 200, headers: { "content-type": "text/plain" } }));
+    // Public site.
+    if (url.pathname === "/") return renderLanding();
+    if (url.pathname === "/demo") return renderDemo();
+
+    return new Response("not found", { status: 404 });
   },
 } satisfies ExportedHandler<Env>;
