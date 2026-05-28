@@ -21,7 +21,7 @@ const { planId } = await mcp.echo.run(`
 `);
 ```
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/echo) · [demo](https://echo.coey.dev/demo) · [docs](https://echo.coey.dev)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/echo) · [live demo](https://echo.ax.cloudflare.dev/demo) · [docs](https://echo.ax.cloudflare.dev)
 
 ---
 
@@ -49,6 +49,8 @@ bun run dev
 ```
 
 Open <http://127.0.0.1:8870>. The `/demo` page mints a real session against your local worker, submits a plan, polls status. No extension required — the plan returns `session_unbound`, which is the proof: your tab is the only thing that can fulfill calls.
+
+Or try it live without installing anything: <https://echo.ax.cloudflare.dev/demo>.
 
 ## Deploy your own
 
@@ -112,4 +114,4 @@ MIT.
 
 ---
 
-[![demo](./proof/landing.png)](https://echo.coey.dev)
+[![demo](./proof/prod/demo-complete.png)](https://echo.ax.cloudflare.dev/demo)

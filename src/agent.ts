@@ -178,25 +178,65 @@ export default {
       return { ok: false, error: `loader_get_failed: ${String(e)}` };
     }
 
-    await this.ctx.storage.put(`plan:${planId}`, codeId);
+    // Stash everything runPlan needs to rebuild the factory on cold isolates.
+    await this.ctx.storage.put(`plan:${planId}`, {
+      codeId,
+      source: planSource,
+      tabBindingSessionId: this.name,
+    });
     return { ok: true };
   }
 
   @unstable_callable({ description: "Run the booted plan to completion." })
   async runPlan(planId: string): Promise<unknown> {
-    const codeId = await this.ctx.storage.get<string>(`plan:${planId}`);
-    if (!codeId) return { ok: false, error: "plan_not_booted" };
+    const stored = await this.ctx.storage.get<{ codeId: string; source: string; tabBindingSessionId: string }>(`plan:${planId}`);
+    if (!stored) return { ok: false, error: "plan_not_booted" };
 
-    // Worker Loader requires a factory on every .get() call, even for
-    // cached IDs — the factory just isn't invoked when the entry is hot.
-    // We pass a factory that throws because by this point bootPlan must
-    // have already populated the entry.
+    const ctx = this.ctx as unknown as {
+      exports: { TabBinding: (cfg: { props: { sessionId: string } }) => unknown };
+    };
+
+    // Re-build the factory with the exact same source so Worker Loader can
+    // rehydrate the sandbox if it was evicted between bootPlan and runPlan.
+    // In prod, isolates are not guaranteed to survive across workflow steps.
+    const wrapped = `
+export default {
+  async fetch(req, env) {
+    const tab = env.TAB;
+    const logLines = [];
+    const log = (line) => {
+      const s = typeof line === "string" ? line : JSON.stringify(line);
+      logLines.push(s);
+      if (logLines.length > 1000) logLines.shift();
+    };
+    try {
+      const planFn = (${stored.source});
+      const out = await planFn({ tab, log });
+      return Response.json({ ok: true, result: out ?? null, logs: logLines });
+    } catch (e) {
+      return Response.json({ ok: false, error: String(e), logs: logLines }, { status: 200 });
+    }
+  }
+};
+`;
+
     const loader = this.env.LOADER as unknown as {
       get: (id: string, factory: () => Promise<unknown>) => Promise<{ getEntrypoint: () => { fetch: (req: Request) => Promise<Response> } }>;
     };
+
     try {
-      const worker = await loader.get(codeId, async () => {
-        throw new Error("plan_not_booted_factory_called");
+      const worker = await loader.get(stored.codeId, async () => {
+        let tabBinding: unknown;
+        try { tabBinding = ctx.exports.TabBinding({ props: { sessionId: stored.tabBindingSessionId } }); }
+        catch (e) { throw new Error(`tab_binding_export_missing: ${String(e)}`); }
+        return {
+          compatibilityDate: "2026-04-17",
+          mainModule: "plan.js",
+          modules: { "plan.js": wrapped },
+          globalOutbound: null,
+          env: { TAB: tabBinding },
+          limits: { cpuMs: 30_000 },
+        };
       });
       const entry = worker.getEntrypoint();
       const res = await entry.fetch(new Request("http://plan.local/run"));

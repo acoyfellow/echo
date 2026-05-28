@@ -72,22 +72,26 @@ function stopKeepalive(): void {
 function connect(workerBase: string, signed: string, sessionId: string, origin: string): void {
   if (!state) return;
 
-  // Parse host out of workerBase so PartySocket can wss/ws on its own.
-  // Strip http(s):// and trailing slash.
   const u = new URL(workerBase);
   const host = u.host;
 
-  // SDK convention: pass the class name (PascalCase) as `agent` — AgentClient
-  // camelCases-to-kebabCases it internally to derive the URL segment. Same
-  // call ends up as /agents/echo-agent/<sessionId> on the wire.
-  client = new AgentClient({
-    agent: "EchoAgent",
-    name: sessionId,
-    host,
-    query: { origin, token: signed },
-  });
+  console.log("[echo] connect:", { host, sessionId, origin });
+
+  try {
+    client = new AgentClient({
+      agent: "EchoAgent",
+      name: sessionId,
+      host,
+      query: { origin, token: signed },
+    });
+    console.log("[echo] AgentClient created", { url: (client as { _url?: unknown })._url });
+  } catch (e) {
+    console.error("[echo] AgentClient constructor threw", e);
+    return;
+  }
 
   client.addEventListener("open", () => {
+    console.log("[echo] WS open");
     setBadge("on");
     startKeepalive();
   });
@@ -109,12 +113,14 @@ function connect(workerBase: string, signed: string, sessionId: string, origin: 
     });
   });
 
-  client.addEventListener("close", () => {
+  client.addEventListener("close", (e: Event) => {
+    console.log("[echo] WS close", (e as CloseEvent).code, (e as CloseEvent).reason);
     setBadge("off");
-    // PartySocket auto-reconnects; we don't need to schedule.
   });
 
-  client.addEventListener("error", () => { /* PartySocket handles */ });
+  client.addEventListener("error", (e: Event) => {
+    console.error("[echo] WS error", (e as ErrorEvent).message);
+  });
 }
 
 async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string; signed?: string; origin?: string; mcpUrl?: string }> {
