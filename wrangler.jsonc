@@ -1,10 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "echo",
+  // Personal account (Coeyman@gmail.com). Echo is a personal OSS project.
+  // NEVER point this at a Cloudflare-owned corp account.
+  "account_id": "bfcb6ac5b3ceaf42a09607f6f7925823",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-17",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  // To pin a custom domain (e.g. echo.coey.dev), add it back here AFTER
+  // confirming the zone is on the same account as account_id above.
+  // Otherwise wrangler binds the route but Cloudflare can't auto-create DNS.
+  // "routes": [{ "pattern": "echo.coey.dev", "custom_domain": true }],
   "observability": { "enabled": true },
 
   // Supervisor Agent DO — one per signed session.
