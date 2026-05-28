@@ -228,6 +228,23 @@ function shellHead(opts: { title: string; description: string; path: string }): 
   .row button:disabled { opacity: 0.4; cursor: not-allowed; }
   .out { background: #0d1117; color: #c9d1d9; padding: 16px 18px; border-radius: 6px; font: 13px/1.55 ui-monospace, monospace; overflow-x: auto; white-space: pre-wrap; min-height: 60px; }
   .out.err { background: var(--accent); color: #fff; }
+  /* Editable highlighted code cell. <textarea> overlaid on a <pre> mirror. */
+  .cell { position: relative; background: #0d1117; border-radius: 8px; border: 1px solid var(--rule); overflow: hidden; }
+  .cell-label { position: absolute; top: 8px; right: 12px; font: 11px/1 ui-monospace, monospace; color: #6e7681; letter-spacing: 0.08em; text-transform: uppercase; z-index: 3; pointer-events: none; }
+  .cell-mirror, .cell-input { font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 18px 20px 20px; margin: 0; tab-size: 2; white-space: pre; word-wrap: normal; overflow-wrap: normal; }
+  .cell-mirror { color: #c9d1d9; overflow-x: auto; pointer-events: none; min-height: 220px; }
+  .cell-mirror code { font: inherit; background: transparent; padding: 0; }
+  .cell-input { position: absolute; inset: 0; resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: #c9d1d9; overflow: auto; width: 100%; height: 100%; }
+  .cell-input::selection { background: rgba(121,192,255,0.25); color: transparent; }
+  .cell-result { background: #0d1117; color: #c9d1d9; border-radius: 8px; border: 1px solid var(--rule); padding: 18px 20px; font: 13px/1.55 ui-monospace, monospace; overflow-x: auto; }
+  .cell-result .lbl { font-size: 11px; color: #6e7681; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 6px; }
+  .cell-result pre { background: transparent; padding: 0; margin: 0; }
+  .cell-result + .cell-result { margin-top: 12px; }
+  .cell-hint { color: var(--muted); font-size: 13px; margin-top: 16px; line-height: 1.55; max-width: 60ch; }
+  .cell-hint code { font-size: 12px; }
+  .run-btn { margin-top: 14px; padding: 11px 22px; font: inherit; font-size: 14px; cursor: pointer; border: 1px solid var(--ink); border-radius: 6px; background: var(--ink); color: var(--bg); font-weight: 500; }
+  .run-btn:hover { background: var(--accent); border-color: var(--accent); }
+  .run-btn:disabled { opacity: 0.5; cursor: progress; }
   .box { border: 1px solid var(--rule); border-radius: 8px; padding: 18px 20px; background: var(--bg); }
   .box-label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   .box-after { border-color: var(--accent); }
@@ -534,135 +551,128 @@ const { planId } = await mcp.echo.run(\`
 }
 
 export async function renderDemo(): Promise<Response> {
+  const defaultPlan = `async ({ tab, log }) => {
+  log("hello from the sandbox")
+  const r = await tab.execute({
+    code: \`return { url: location.href, title: document.title }\`,
+  })
+  return r
+}`;
+  const initialHighlight = await highlightText(defaultPlan, "ts", false);
+
   const html =
     shellHead({
-      title: `${SITE_NAME} — live demo`,
-      description: `Mint a real signed session against echo and submit a JS plan. Polls real workflow step history. ${SITE_DESC}`,
+      title: `${SITE_NAME} — try it`,
+      description: `Write a plan, run it. Live against this Worker. ${SITE_DESC}`,
       path: "/demo",
     }) +
     /* html */ `
     <section class="hero">
-      <div class="tag">live demo &middot; this worker</div>
-      <h1>Run a real plan.</h1>
-      <p class="lead">
-        Mints a real signed session against this worker. Submits a plan. Polls
-        until done. Every byte you see came from a real workflow on a real
-        Cloudflare Durable Object.
-        <strong>No extension required for the demo</strong>&mdash;the plan calls
-        <code>tab.execute(...)</code> which returns <code>session_unbound</code>
-        because no extension is attached. That's the proof: your tab is the only
-        thing that can fulfill calls.
+      <div class="tag">try it &middot; live</div>
+      <h1 style="max-width: 22ch;">Write a plan. Press run.</h1>
+      <p class="lead" style="font-size: 17px;">
+        This page is hitting <code>${SITE_URL}</code> directly. Edit the function, press run, see the receipt come back.
+        With no extension attached, the call returns <code>session_unbound</code> &mdash; which <em>is</em> the system working.
       </p>
     </section>
 
     <section>
-      <div class="tag">step 01 &middot; mint a session</div>
-      <h2 style="margin: 12px 0 16px;">Origin-bound HMAC-signed.</h2>
-      <p style="color: var(--muted); font-size: 14px; line-height: 1.55;">
-        Any origin works for the demo. echo signs a session id pinned to it.
-      </p>
-      <div class="row">
-        <input id="origin" value="https://example.com" placeholder="https://example.com" />
-        <button id="mint">mint</button>
+      <div class="cell">
+        <div class="cell-label">plan.ts</div>
+        <pre id="mirror" class="cell-mirror shj shj-lang-ts" aria-hidden="true">${initialHighlight}</pre>
+        <textarea id="editor" class="cell-input" spellcheck="false" autocapitalize="off" autocorrect="off">${escapeHtml(defaultPlan)}</textarea>
       </div>
-      <div id="mintOut" class="out" hidden></div>
-    </section>
+      <button id="run" class="run-btn">run</button>
 
-    <section>
-      <div class="tag">step 02 &middot; submit a plan</div>
-      <h2 style="margin: 12px 0 16px;">A JS function expression.</h2>
-      <p style="color: var(--muted); font-size: 14px; line-height: 1.55;">
-        Your plan receives <code>{ tab, log }</code>. <code>tab.execute({code})</code>
-        runs the code in the page realm. <code>log(...)</code> writes to the receipt.
-      </p>
-      <div class="row">
-        <textarea id="plan">async ({ tab, log }) =&gt; {
-  log("plan starting");
-  const r = await tab.execute({
-    code: \`
-      const resp = await fetch("/", { credentials: "include" });
-      return { status: resp.status, ok: resp.ok };
-    \`
-  });
-  log("got " + JSON.stringify(r));
-  return r;
-}</textarea>
-      </div>
-      <div class="row" style="margin-top: 0;">
-        <button id="run" disabled>submit plan</button>
-      </div>
-      <div id="runOut" class="out" hidden></div>
-    </section>
-
-    <section>
-      <div class="tag">step 03 &middot; status</div>
-      <h2 style="margin: 12px 0 16px;">Workflow step history.</h2>
-      <p style="color: var(--muted); font-size: 14px; line-height: 1.55;">
-        Polls <code>echo.status(planId)</code>. Step history is the receipt chain.
-      </p>
-      <div id="statusOut" class="out" hidden></div>
-    </section>
-
-    <section>
-      <div class="tag">try it for real</div>
-      <h2 style="margin: 12px 0 16px;">Install the extension. Run the plan against your own logged-in tab.</h2>
-      <p style="color: var(--muted); font-size: 14px; line-height: 1.55;">
-        The demo runs against the live worker but with no extension attached.
-        Install echo, open a tab you're already logged into, and the same plan
-        will hit real APIs through your session.
-      </p>
-      <div class="actions" style="margin-top: 24px;">
-        <a class="btn btn-primary" href="${GITHUB_URL}">get the extension</a>
-        <a class="btn" href="/">back to home</a>
+      <div id="result-wrap" hidden>
+        <div class="cell-result" style="margin-top: 28px;">
+          <p class="lbl">workflow status</p>
+          <pre id="result" class="shj shj-lang-ts"></pre>
+        </div>
+        <p id="hint" class="cell-hint" hidden></p>
       </div>
     </section>
 
-<script>
+<script type="module">
+import { highlightText } from "https://cdn.jsdelivr.net/npm/@speed-highlight/core@1.2.15/dist/index.js";
+
+const editor = document.getElementById("editor");
+const mirror = document.getElementById("mirror");
+const run = document.getElementById("run");
+const resultEl = document.getElementById("result");
+const resultWrap = document.getElementById("result-wrap");
+const hint = document.getElementById("hint");
+
 let signed = null;
 
-function show(id, body, isErr) {
-  const el = document.getElementById(id);
-  el.hidden = false;
-  el.textContent = body;
-  el.classList.toggle("err", !!isErr);
-}
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-async function jsonOrText(r) {
-  const text = await r.text();
-  try { return JSON.parse(text); } catch { return text; }
-}
-
-document.getElementById("mint").addEventListener("click", async () => {
-  const btn = document.getElementById("mint");
-  btn.disabled = true;
-  btn.textContent = "minting...";
+async function rehighlight() {
+  // Trailing newline keeps the last line visible while typing.
+  const src = editor.value + (editor.value.endsWith("\\n") ? " " : "\\n");
   try {
-    const r = await fetch("/sessions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ origin: document.getElementById("origin").value }),
-    });
-    const body = await jsonOrText(r);
-    if (!r.ok) { show("mintOut", JSON.stringify(body, null, 2), true); return; }
-    signed = body.signed;
-    show("mintOut", JSON.stringify(body, null, 2));
-    document.getElementById("run").disabled = false;
-  } catch (e) {
-    show("mintOut", String(e), true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "mint";
+    mirror.innerHTML = await highlightText(src, "ts", false);
+  } catch {
+    mirror.textContent = src;
+  }
+}
+rehighlight();
+
+// Sync mirror with editor on every keystroke + keep scrolling aligned.
+editor.addEventListener("input", rehighlight);
+editor.addEventListener("scroll", () => {
+  mirror.scrollTop = editor.scrollTop;
+  mirror.scrollLeft = editor.scrollLeft;
+});
+// Indent on Tab instead of jumping focus.
+editor.addEventListener("keydown", (e) => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    editor.value = editor.value.slice(0, start) + "  " + editor.value.slice(end);
+    editor.selectionStart = editor.selectionEnd = start + 2;
+    rehighlight();
   }
 });
 
-document.getElementById("run").addEventListener("click", async () => {
-  if (!signed) return;
-  const btn = document.getElementById("run");
-  btn.disabled = true;
-  btn.textContent = "running...";
+async function ensureSession() {
+  if (signed) return signed;
+  const r = await fetch("/sessions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ origin: location.origin }),
+  });
+  if (!r.ok) throw new Error("failed to mint session");
+  const body = await r.json();
+  signed = body.signed;
+  return signed;
+}
+
+async function showResult(value, hintText) {
+  resultWrap.hidden = false;
+  const json = JSON.stringify(value, null, 2);
   try {
-    const plan = document.getElementById("plan").value;
-    const r = await fetch("/mcp?id=" + encodeURIComponent(signed), {
+    resultEl.innerHTML = await highlightText(json, "ts", false);
+  } catch {
+    resultEl.textContent = json;
+  }
+  if (hintText) {
+    hint.hidden = false;
+    hint.innerHTML = hintText;
+  } else {
+    hint.hidden = true;
+  }
+}
+
+run.addEventListener("click", async () => {
+  run.disabled = true;
+  run.textContent = "running\u2026";
+  try {
+    const signedId = await ensureSession();
+    const plan = editor.value;
+
+    const r = await fetch("/mcp?id=" + encodeURIComponent(signedId), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -670,25 +680,44 @@ document.getElementById("run").addEventListener("click", async () => {
         params: { name: "run", arguments: { plan } },
       }),
     });
-    const body = await jsonOrText(r);
-    show("runOut", JSON.stringify(body, null, 2));
+    const body = await r.json();
     const planId = body?.result?.structuredContent?.planId;
-    if (!planId) return;
-    await new Promise(rr => setTimeout(rr, 2500));
-    const sr = await fetch("/mcp?id=" + encodeURIComponent(signed), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0", id: 2, method: "tools/call",
-        params: { name: "status", arguments: { planId } },
-      }),
-    });
-    show("statusOut", JSON.stringify(await jsonOrText(sr), null, 2));
+    if (!planId) {
+      await showResult(body, "That's the run response, not a status. Likely a parse/auth issue.");
+      return;
+    }
+
+    // Poll up to ~10s.
+    for (let i = 0; i < 6; i++) {
+      await new Promise(rr => setTimeout(rr, i === 0 ? 1500 : 1500));
+      const sr = await fetch("/mcp?id=" + encodeURIComponent(signedId), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0", id: 2, method: "tools/call",
+          params: { name: "status", arguments: { planId } },
+        }),
+      });
+      const sb = await sr.json();
+      const status = sb?.result?.structuredContent?.status?.status;
+      if (status === "complete" || status === "errored" || status === "terminated") {
+        const output = sb.result.structuredContent;
+        const err = output?.status?.output?.error || output?.status?.output?.result?.error;
+        let h = null;
+        if (err === "session_unbound") {
+          h = '<strong>session_unbound</strong> means the supervisor refused to deliver code: no browser extension is attached to this session. Install <a href="' + ${JSON.stringify(GITHUB_URL)} + '">the extension</a> and run on a tab you\\'re signed into to see a real result.';
+        }
+        await showResult(output, h);
+        return;
+      }
+      await showResult(sb.result.structuredContent, "polling\u2026");
+    }
+    hint.innerHTML = "Timed out after 10s. The workflow may still complete \u2014 try again.";
   } catch (e) {
-    show("runOut", String(e), true);
+    await showResult({ error: String(e) }, null);
   } finally {
-    btn.disabled = false;
-    btn.textContent = "submit plan";
+    run.disabled = false;
+    run.textContent = "run";
   }
 });
 </script>
