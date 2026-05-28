@@ -21,12 +21,6 @@ const STORE = {
   workerBase: "workerBase",
 } as const;
 
-const FORBIDDEN_PROTOCOLS = new Set([
-  "chrome:", "chrome-extension:", "chrome-search:", "chrome-devtools:",
-  "devtools:", "view-source:", "file:", "data:", "javascript:",
-  "blob:", "about:", "edge:",
-]);
-
 const HEARTBEAT_ALARM = "echo-keepalive";
 const HEARTBEAT_PERIOD_MIN = 0.4; // chrome alarms minimum is 0.5; we use 0.4 to be safe
 
@@ -96,21 +90,20 @@ function connect(workerBase: string, signed: string, sessionId: string, origin: 
     startKeepalive();
   });
 
-  client.addEventListener("message", (e: MessageEvent) => {
+  client.addEventListener("message", async (e: MessageEvent) => {
     if (!state) return;
     let msg: { type?: string; callId?: string; code?: string; timeoutMs?: number };
     try { msg = JSON.parse(String(e.data)); } catch { return; }
-    if (msg.type !== "execute" || !msg.callId) return;
+    if (msg.type !== "execute" || !msg.callId || typeof msg.code !== "string") return;
 
-    chrome.tabs.sendMessage(state.tabId, msg, (result: { result?: unknown } | undefined) => {
-      const err = chrome.runtime.lastError;
-      const out = err || !result
-        ? { ok: false, error: err?.message ? "tab_unreachable" : "tab_unreachable" }
-        : result.result;
-      try {
-        client?.send(JSON.stringify({ type: "result", callId: msg.callId, result: out }));
-      } catch { /* socket may have closed */ }
-    });
+    // Inject into the page's MAIN world. Content-script-isolated-world has a
+    // restrictive CSP (no eval / no new Function), but the page's MAIN world
+    // runs under the page's own CSP. For sites without an `unsafe-eval` rule
+    // (most of them), `new AsyncFunction` works there.
+    const out = await runInTab(state.tabId, msg.code, msg.timeoutMs ?? 30_000);
+    try {
+      client?.send(JSON.stringify({ type: "result", callId: msg.callId, result: out }));
+    } catch { /* socket may have closed */ }
   });
 
   client.addEventListener("close", (e: Event) => {
@@ -123,14 +116,29 @@ function connect(workerBase: string, signed: string, sessionId: string, origin: 
   });
 }
 
-async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string; signed?: string; origin?: string; mcpUrl?: string }> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.url || !tab.id) return { ok: false, error: "no_active_tab" };
+async function open(opts: { tabId?: number } = {}): Promise<{ ok: boolean; error?: string; sessionId?: string; signed?: string; origin?: string; mcpUrl?: string }> {
+  // Pick the tab to attach to:
+  //   1. honour an explicit tabId from the popup (it knows what the user was looking at)
+  //   2. otherwise prefer the active tab in the last-focused window
+  //   3. otherwise any active http(s) tab anywhere
+  // We only require http(s) because that's where content scripts can run.
+  // Chrome itself blocks injection into chrome://, chrome-extension://, etc.
+  let tab: chrome.tabs.Tab | undefined;
+  if (opts.tabId !== undefined) {
+    try { tab = await chrome.tabs.get(opts.tabId); } catch { tab = undefined; }
+  }
+  if (!tab || !tab.url || !/^https?:/.test(tab.url)) {
+    const focused = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    tab = focused.find((t) => t.url && /^https?:/.test(t.url));
+  }
+  if (!tab || !tab.url || !tab.id) {
+    const any = await chrome.tabs.query({});
+    tab = any.find((t) => t.active && t.url && /^https?:/.test(t.url));
+  }
+  if (!tab?.url || !tab.id) return { ok: false, error: "no_active_http_tab" };
 
   let parsed: URL;
   try { parsed = new URL(tab.url); } catch { return { ok: false, error: "bad_tab_url" }; }
-  if (FORBIDDEN_PROTOCOLS.has(parsed.protocol)) return { ok: false, error: `forbidden_protocol:${parsed.protocol}` };
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return { ok: false, error: `unsupported_protocol:${parsed.protocol}` };
 
   const tabOrigin = parsed.origin;
   const workerBase = await getWorkerBase();
@@ -164,6 +172,53 @@ async function open(): Promise<{ ok: boolean; error?: string; sessionId?: string
   };
 }
 
+// Runs in the target tab's MAIN world. Defined at top-level so chrome.scripting
+// can serialize it (closures don't survive structured cloning into MAIN world).
+function __echoMainWorldExecute(code: string, timeoutMs: number): Promise<{ ok: boolean; result?: unknown; error?: string; logs?: string[] }> {
+  return new Promise(async (resolve) => {
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as new (...a: string[]) => (...args: unknown[]) => Promise<unknown>;
+    const logs: string[] = [];
+    const log = (line: unknown) => {
+      const s = typeof line === "string" ? line : JSON.stringify(line);
+      logs.push(s);
+      if (logs.length > 1000) logs.shift();
+    };
+    let fn: (...args: unknown[]) => Promise<unknown>;
+    try {
+      fn = new AsyncFunction("__echoLog", "log", code);
+    } catch (e) {
+      resolve({ ok: false, error: "compile_failed: " + String(e), logs: [] });
+      return;
+    }
+    try {
+      const run = fn(log, log);
+      const result = await Promise.race([
+        run,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout_after_" + timeoutMs + "ms")), timeoutMs),
+        ),
+      ]);
+      resolve({ ok: true, result, logs });
+    } catch (e) {
+      resolve({ ok: false, error: String(e), logs });
+    }
+  });
+}
+
+async function runInTab(tabId: number, code: string, timeoutMs: number): Promise<unknown> {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: __echoMainWorldExecute,
+      args: [code, timeoutMs],
+    });
+    return results[0]?.result ?? { ok: false, error: "no_result" };
+  } catch (e) {
+    return { ok: false, error: "executeScript_failed: " + String(e) };
+  }
+}
+
 function closeLocal(): void {
   try { client?.close(); } catch {}
   client = null;
@@ -185,6 +240,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// External messages from echo's own docs site (origins listed in
+// manifest.externally_connectable.matches). The docs page can ask the
+// extension to attach to the current tab without the user opening the popup.
+chrome.runtime.onMessageExternal?.addListener((msg, sender, sendResponse) => {
+  // Explicit tabId in the message wins (caller knows which tab to target).
+  // Fall back to sender.tab.id (caller wants to attach to itself).
+  const tabId = typeof msg?.tabId === "number" ? msg.tabId : sender.tab?.id;
+  if (msg?.type === "open") { open({ tabId }).then(sendResponse); return true; }
+  if (msg?.type === "status") {
+    sendResponse({
+      open: !!state,
+      sessionId: state?.sessionId,
+      signed: state?.signed,
+      origin: state?.origin,
+      mcpUrl: state ? state.workerBase + "/mcp?id=" + encodeURIComponent(state.signed) : undefined,
+    });
+    return false;
+  }
+  if (msg?.type === "close") { closeLocal(); sendResponse({ ok: true }); return false; }
+  sendResponse({ ok: false, error: "unknown_external" });
+  return false;
+});
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "wstest") {
     // Hand-rolled WS test — confirm a raw WS from this SW reaches /agents/.
@@ -196,7 +274,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     setTimeout(() => sendResponse({ result: "timeout" }), 4000);
     return true;
   }
-  if (msg?.type === "open") { open().then(sendResponse); return true; }
+  if (msg?.type === "open") { open({ tabId: typeof msg.tabId === "number" ? msg.tabId : undefined }).then(sendResponse); return true; }
   if (msg?.type === "close") { closeLocal(); sendResponse({ ok: true }); return false; }
   if (msg?.type === "status") {
     sendResponse({

@@ -1,14 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "echo",
-  "account_id": "31b91e7f9954ad8aa334d46f012bd8ed",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-17",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  "routes": [
-    { "pattern": "echo.ax.cloudflare.dev", "custom_domain": true }
-  ],
   "observability": { "enabled": true },
 
   // Supervisor Agent DO — one per signed session.

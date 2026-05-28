@@ -6,6 +6,14 @@
   "permissions": ["activeTab", "storage", "scripting", "tabs", "alarms"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js", "type": "module" },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -15,6 +23,14 @@
     }
   },
   "options_page": "options.html",
+  "externally_connectable": {
+    "matches": [
+      "http://127.0.0.1:*/*",
+      "http://localhost:*/*",
+      "https://echo.ax.cloudflare.dev/*",
+      "https://echo.coey.dev/*"
+    ]
+  },
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
