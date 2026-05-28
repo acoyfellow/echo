@@ -10,7 +10,7 @@
 import { routeAgentRequest } from "agents";
 import { mintSessionId, verifySessionId } from "./auth";
 import { handleMcp } from "./mcp";
-import { renderLanding, renderDemo } from "./site";
+import { renderLanding, renderDemo, renderFavicon, renderOg, renderRobots, renderSitemap } from "./site";
 import type { Env } from "./types";
 
 export { EchoAgent } from "./agent";
@@ -85,6 +85,10 @@ export default {
     // Public site.
     if (url.pathname === "/") return renderLanding();
     if (url.pathname === "/demo") return renderDemo();
+    if (url.pathname === "/favicon.svg" || url.pathname === "/favicon.ico") return renderFavicon();
+    if (url.pathname === "/og.svg") return renderOg();
+    if (url.pathname === "/robots.txt") return renderRobots();
+    if (url.pathname === "/sitemap.xml") return renderSitemap();
 
     return new Response("not found", { status: 404 });
   },

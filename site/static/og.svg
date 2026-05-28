@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#0a0a0f"/>
+
+  <!-- top hairline label -->
+  <line x1="80" y1="100" x2="1120" y2="100" stroke="#27272a" stroke-width="1"/>
+  <text x="80" y="80" font-family="'Google Sans Code', ui-monospace, Menlo, monospace" font-weight="500" font-size="20" fill="#52525b" letter-spacing="3">CODEMODE FOR THE AUTHENTICATED BROWSER</text>
+
+  <!-- huge headline -->
+  <text x="80" y="260" font-family="'Google Sans Code', ui-monospace, Menlo, monospace" font-weight="700" font-size="140" fill="#f4f4f5" letter-spacing="-6">echo</text>
+  <circle cx="375" cy="195" r="14" fill="#ff7a3c"/>
+
+  <!-- human tagline -->
+  <text x="80" y="340" font-family="'Google Sans Flex', ui-sans-serif, system-ui, sans-serif" font-weight="500" font-size="36" fill="#d4d4d8">Your tab is the agent's tab.</text>
+  <text x="80" y="392" font-family="'Google Sans Flex', ui-sans-serif, system-ui, sans-serif" font-weight="400" font-size="26" fill="#a1a1aa">A logged-in browser tab becomes a remote MCP target.</text>
+  <text x="80" y="430" font-family="'Google Sans Flex', ui-sans-serif, system-ui, sans-serif" font-weight="400" font-size="26" fill="#a1a1aa">The agent writes a plan; Cloudflare runs it; your tab does the work.</text>
+
+  <!-- middle hairline -->
+  <line x1="80" y1="490" x2="1120" y2="490" stroke="#27272a" stroke-width="1"/>
+
+  <!-- the composition -->
+  <g font-family="'Google Sans Code', ui-monospace, Menlo, monospace" font-size="20" fill="#d4d4d8">
+    <text x="80" y="540"><tspan fill="#52525b">01 </tspan>worker loader</text>
+    <text x="80" y="572"><tspan fill="#52525b">02 </tspan>do facets</text>
+    <text x="380" y="540"><tspan fill="#52525b">03 </tspan>workflows</text>
+    <text x="380" y="572"><tspan fill="#52525b">04 </tspan>agents sdk</text>
+    <text x="680" y="540"><tspan fill="#52525b">05 </tspan>mcp tool: run(plan)</text>
+    <text x="680" y="572"><tspan fill="#52525b">06 </tspan>tab as ws binding</text>
+  </g>
+
+  <!-- footer attribution -->
+  <text x="1120" y="600" text-anchor="end" font-family="'Google Sans Code', ui-monospace, Menlo, monospace" font-size="18" fill="#52525b">github.com/acoyfellow/echo</text>
+</svg>
