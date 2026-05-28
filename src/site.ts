@@ -20,7 +20,7 @@ import { highlightText } from "@speed-highlight/core";
 
 // Canonical absolute base URL. Doubles as the JSON-LD @id and OG og:url root.
 // Override via env if needed; for now hard-code the personal workers.dev URL.
-export const SITE_URL = "https://echo.coy.workers.dev";
+export const SITE_URL = "https://echo.coey.dev";
 export const SITE_NAME = "echo";
 export const SITE_TAGLINE = "An agent can drive your logged-in tab without ever holding your password.";
 export const SITE_DESC =
