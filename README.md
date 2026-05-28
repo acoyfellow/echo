@@ -1,46 +1,71 @@
 # echo
 
-**Your tab is the agent's tab.**
+**Your logged-in browser tab, as an MCP target.**
 
-echo turns a logged-in browser tab into a remote target for an MCP agent. The agent submits a TypeScript plan; Cloudflare runs it as a Workflow whose steps execute code in your tab; the receipt is the workflow's step log. No tokens. No headless Chrome. No credential vault.
-
-```ts
-const { planId } = await mcp.echo.run(`
-  async ({ tab, log }) => {
-    const r = await tab.execute({
-      code: \`
-        const resp = await fetch("/rest/api/2/search?jql=assignee=currentUser()", {
-          credentials: "include"
-        });
-        return await resp.json();
-      \`
-    });
-    log("got " + r.result.issues.length + " tickets");
-    return r.result;
-  }
-`);
-```
+An agent can drive any browser tab you're already signed into, without ever holding your password. echo is a Chrome extension + a Cloudflare Worker. The agent submits a plan over MCP; Cloudflare runs it inside a sandbox whose only outbound is a WebSocket back to your tab.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/echo) · [live demo](https://echo.coey.dev/demo)
 
----
+```ts
+// what an agent calls — one MCP tool, run(plan)
+const { planId } = await mcp.tools.call("run", {
+  plan: `
+    async ({ tab, log }) => {
+      // runs in your tab's realm, with your session cookies
+      const r = await tab.execute({
+        code: \`
+          const resp = await fetch("/api/issues?assignee=me", {
+            credentials: "include"
+          });
+          return await resp.json();
+        \`
+      });
+      log("got " + r.result.length + " issues");
+      return r.result;
+    }
+  `
+});
+```
 
-## What it is
+## How it works
 
-- **One MCP tool: `echo.run(plan)`.** The agent submits a JS function expression. The Worker runs it inside a Worker Loader sandbox whose only outbound is a binding to your authenticated tab.
-- **Durable.** Each step is a Cloudflare Workflow step. Plans can sleep for hours, survive tab close, replay on retry. Step history is the receipt chain.
-- **Same trust model as Codex.** OpenAI's Codex desktop app already gives a remote agent your authenticated browser. echo does the same thing — but the browser stays on your machine, and the agent can be any MCP client.
+1. You install the extension (load unpacked today — not in the Web Store yet).
+2. You open a tab you're already signed into.
+3. You click the echo icon. The extension mints an HMAC-signed session pinned to that tab's origin and opens a WebSocket to the Worker.
+4. You paste the MCP URL into your client (Claude Desktop, Cursor, etc.).
+5. The agent calls `run(plan)`. The Worker boots a Workflow, runs the plan in a Worker Loader sandbox with `globalOutbound: null`, and the plan's only way to do anything is `tab.execute({ code })` — which RPCs back through the WebSocket to your tab.
+6. The agent calls `status(planId)`. It gets the full step log: every snippet, every result, every log line. Durable.
 
-## The composition
+## What this replaces
 
-| Primitive | Role |
+| Today | With echo |
 |---|---|
-| Dynamic Workers (Worker Loader) | The plan runs in a per-call V8 isolate. `globalOutbound: null`. 13ms cold-start. No way to reach the supervisor's storage or signing key. |
-| DO Facets | Each plan gets its own SQLite scratch DB inside the session DO. The supervisor cannot read it. |
-| Dynamic Workflows | Plans are durable: sleep for hours, survive tab close, replay on retry. Step history *is* the receipt chain. |
-| `cloudflare/agents` SDK | Glues the WebSocket transport, sub-agents-as-facets, and the workflow integration. |
+| Generate a Jira/GitHub PAT, store it in 1Password, paste it into the agent's config | Click "open echo on this tab", agent reads your tickets via your already-signed-in session |
+| Run headless Chrome with stored cookies in a server somewhere | Use the browser you already have open |
+| Give the agent access to a service account that can see everything | Agent sees what *you* can see in that tab — no more |
+| "What did the agent do?" → guess from API logs | `echo.status(planId)` returns every code snippet and result |
 
-## Try it locally
+## Trust model
+
+| Capability | Status | Enforced by |
+|---|---|---|
+| Read DOM and run authenticated `fetch()` on the tab's origin | ✅ | content script / `chrome.scripting.executeScript({world: "MAIN"})` |
+| Make cross-origin requests subject to CORS | ✅ | the browser |
+| Reach the Worker's signing secret or other tabs | ❌ | `globalOutbound: null` in `src/agent.ts` |
+| Talk to a different tab than the one you opened the session on | ❌ | `state.tabId` is pinned in `extension/background.ts` |
+| Survive after you close the tab | ❌ | `chrome.tabs.onRemoved` revokes the session |
+| Be replayed by a stale or stolen session id | ❌ | HMAC + expiry in `src/auth.ts` |
+| Be invoked from a different origin than the one the session was minted on | ❌ | origin pin verified server-side in `src/auth.ts` |
+
+**You still have to trust the agent you give a session to.** Inside the tab's origin, plan code can do anything the page's own JS could do. echo bounds the *blast radius*; it does not replace good judgment about who you let drive.
+
+## Try it without installing anything
+
+The live demo at <https://echo.coey.dev/demo> hits the production Worker directly. You can write a plan, submit it, and see the workflow step history. With no extension attached, the plan call returns `session_unbound` — the supervisor refusing to deliver code to a tab that isn't there. That's the kill switch working; it's not a useful run.
+
+For a useful run, you need the extension and a tab.
+
+## Run it locally
 
 ```bash
 git clone https://github.com/acoyfellow/echo && cd echo
@@ -48,27 +73,20 @@ bun install
 bun run dev
 ```
 
-Open <http://127.0.0.1:8870>. The `/demo` page mints a real session against your local worker, submits a plan, polls status. No extension required — the plan returns `session_unbound`, which is the proof: your tab is the only thing that can fulfill calls.
+Open <http://127.0.0.1:8870>.
 
 ## Deploy your own
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/echo)
-
-Or manually:
-
 ```bash
-echo $(openssl rand -base64 48) | bun run setup:secret
-bun run deploy
+git clone https://github.com/acoyfellow/echo && cd echo
+bun install
+bun run setup:secret     # mints an HMAC signing secret
+bun run deploy           # deploys to your Cloudflare account
 ```
 
-You get a Worker at `echo.<your-subdomain>.workers.dev` with:
-- the docs site
-- the MCP endpoint
-- the WebSocket relay
-- per-session Durable Objects
-- per-plan Workflows
+Or click the button at the top of this README.
 
-Your account, your audit, your rate limits.
+You get one Worker with the docs site, the MCP endpoint, the WebSocket relay, per-session Durable Objects, and per-plan Workflows. Your account, your audit, your rate limits.
 
 ## Install the extension
 
@@ -77,39 +95,37 @@ bun run build:ext
 # Chrome → chrome://extensions → Developer mode → Load unpacked → echo/extension/dist
 ```
 
-Then click the echo icon on any tab you're logged into. Copy the MCP URL. Add it to any MCP client.
+In the popup, set the Worker URL to your deployment (or `https://echo.coey.dev` for the hosted instance). Then click the echo icon on any tab you're signed into.
 
-## The trust posture
+Chrome Web Store submission is not done yet. If you'd rather wait, watch the repo.
 
-- Session is HMAC-signed to one tab origin.
-- Closing the tab revokes the session.
-- Plan code runs in your tab's same-origin realm — you sign in once, normally.
-- Worker never sees your cookies; tab handles credentials via `credentials: "include"`.
-- Every step is a durable receipt in the workflow's history.
+## What's under the hood
 
-Same model as Codex desktop. Different blast radius: your browser stays your browser.
+- **Cloudflare Worker** — the MCP endpoint (`tools/list`, `tools/call`) plus the WebSocket relay
+- **Durable Object** — one per session; holds the WebSocket to your extension and routes sandbox → tab calls
+- **Worker Loader** — per-plan V8 sandbox with `globalOutbound: null`; the only thing the plan can talk to is the `TAB` binding handed to it
+- **Dynamic Workflows** — every plan is a workflow; step history is queryable for hours
+- **`agents` SDK** — wires the WebSocket transport and the workflow integration
+- **MV3 Chrome extension** — service worker holds the WS via PartySocket; content script + `chrome.scripting.executeScript({world: "MAIN"})` runs plan-supplied code in the page realm
 
 ## Repo layout
 
 ```
 src/
-  index.ts        worker entry
+  index.ts        worker entry, all routes
   agent.ts        EchoAgent — the supervisor (Agent DO)
-  plan.ts         EchoPlan — Dynamic Workflow that runs plans
-  tab-binding.ts  WorkerEntrypoint the plan facet calls back through
-  mcp.ts          one tool: echo.run(plan)
-  auth.ts         HMAC-signed session ids
-  site.ts         the public docs site
+  plan.ts         EchoPlan — the Workflow that runs each plan
+  tab-binding.ts  WorkerEntrypoint the sandbox calls back through
+  mcp.ts          one MCP tool: run(plan) + status(planId)
+  auth.ts         HMAC-signed origin-pinned session ids
+  site.ts         the docs site + /demo, served from the same Worker
 extension/
   manifest.json   MV3
-  background.ts   AgentClient WS, message routing
-  content.ts      runs code in the page realm
+  background.ts   AgentClient (PartySocket) WS + message routing
+  content.ts      content script bridge (execute → MAIN world)
+  popup.ts        toolbar UI: open / close / copy MCP URL
 ```
 
 ## License
 
 MIT.
-
----
-
-![demo](./proof/demo-complete.png)
