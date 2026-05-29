@@ -11,3 +11,6 @@ extension/dist/
 
 # local wrangler guardrail audit receipts (machine-specific, not part of echo)
 .guardrail/
+
+# internal research / strategy notes (not part of the public project)
+.context/
