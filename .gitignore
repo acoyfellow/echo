@@ -8,3 +8,6 @@ build/
 *.log
 .DS_Store
 extension/dist/
+
+# local wrangler guardrail audit receipts (machine-specific, not part of echo)
+.guardrail/
