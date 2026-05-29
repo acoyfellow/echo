@@ -55,28 +55,28 @@ describe("session ids", () => {
 
 describe("origin enforcement", () => {
   it("accepts same-origin absolute path", () => {
-    const u = resolvePathAgainstOrigin("https://jira.cfdata.org", "/rest/api/2/search");
-    expect(u?.toString()).toBe("https://jira.cfdata.org/rest/api/2/search");
+    const u = resolvePathAgainstOrigin("https://jira.example.com", "/rest/api/2/search");
+    expect(u?.toString()).toBe("https://jira.example.com/rest/api/2/search");
   });
 
   it("rejects cross-origin", () => {
-    expect(resolvePathAgainstOrigin("https://jira.cfdata.org", "https://evil.com/x")).toBeNull();
+    expect(resolvePathAgainstOrigin("https://jira.example.com", "https://evil.com/x")).toBeNull();
   });
 
   it("rejects protocol downgrade", () => {
-    expect(resolvePathAgainstOrigin("https://jira.cfdata.org", "http://jira.cfdata.org/x")).toBeNull();
+    expect(resolvePathAgainstOrigin("https://jira.example.com", "http://jira.example.com/x")).toBeNull();
   });
 
   it("rejects port mismatch", () => {
-    expect(resolvePathAgainstOrigin("https://jira.cfdata.org", "https://jira.cfdata.org:8443/x")).toBeNull();
+    expect(resolvePathAgainstOrigin("https://jira.example.com", "https://jira.example.com:8443/x")).toBeNull();
   });
 
   it("rejects subdomain confusion", () => {
-    expect(resolvePathAgainstOrigin("https://jira.cfdata.org", "https://evil.jira.cfdata.org/x")).toBeNull();
-    expect(resolvePathAgainstOrigin("https://jira.cfdata.org", "https://jira.cfdata.org.evil.com/x")).toBeNull();
+    expect(resolvePathAgainstOrigin("https://jira.example.com", "https://evil.jira.example.com/x")).toBeNull();
+    expect(resolvePathAgainstOrigin("https://jira.example.com", "https://jira.example.com.evil.com/x")).toBeNull();
   });
 
   it("rejects javascript: URIs", () => {
-    expect(resolvePathAgainstOrigin("https://jira.cfdata.org", "javascript:alert(1)")).toBeNull();
+    expect(resolvePathAgainstOrigin("https://jira.example.com", "javascript:alert(1)")).toBeNull();
   });
 });
