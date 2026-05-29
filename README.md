@@ -54,10 +54,14 @@ const { planId } = await mcp.tools.call("run", {
 | Reach the Worker's signing secret or other tabs | ❌ | `globalOutbound: null` in `src/agent.ts` |
 | Talk to a different tab than the one you opened the session on | ❌ | `state.tabId` is pinned in `extension/background.ts` |
 | Survive after you close the tab | ❌ | `chrome.tabs.onRemoved` revokes the session |
-| Be replayed by a stale or stolen session id | ❌ | HMAC + expiry in `src/auth.ts` |
-| Be invoked from a different origin than the one the session was minted on | ❌ | origin pin verified server-side in `src/auth.ts` |
+| Be tampered with, or replayed after it expires | ❌ | HMAC-SHA-256 + expiry checked on every request in `src/auth.ts` |
+| Be re-pointed at a different origin than the one it was signed for | ❌ | the signed origin is enforced on the WebSocket route in `src/index.ts` |
 
 **You still have to trust the agent you give a session to.** Inside the tab's origin, plan code can do anything the page's own JS could do. echo bounds the *blast radius*; it does not replace good judgment about who you let drive.
+
+The signed session id is a bearer credential until it expires: anyone who obtains it before expiry can use it, the same as any token. echo keeps lifetimes short (default 8h, configurable) and ties each id to one origin and one tab, but treat the id like a password — don't paste it where you wouldn't paste a cookie.
+
+> Status: this is a v0.0.1 personal project, not audited. The trust model above reflects what the code enforces today; read the source before pointing it at anything sensitive.
 
 ## Try it without installing anything
 

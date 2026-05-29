@@ -77,7 +77,19 @@ export default {
       const expected = `/agents/echo-agent/${verified.id}`;
       if (url.pathname !== expected) return new Response("session_id_mismatch", { status: 401 });
 
-      const resp = await routeAgentRequest(req, env);
+      // The session id is signed with the origin it was minted for. If the
+      // caller supplied an ?origin= that disagrees with the signed origin,
+      // reject — a valid token must not be re-pointed at a different origin.
+      const claimedOrigin = url.searchParams.get("origin");
+      if (claimedOrigin && claimedOrigin !== verified.origin) {
+        return new Response("origin_mismatch", { status: 401 });
+      }
+      // Force the canonical (signed) origin downstream so the DO pins the
+      // origin the token was actually minted for, not a client-supplied one.
+      url.searchParams.set("origin", verified.origin);
+      const canonicalReq = new Request(url.toString(), req);
+
+      const resp = await routeAgentRequest(canonicalReq, env);
       if (resp) return resp;
       return new Response("agent_route_failed", { status: 404 });
     }

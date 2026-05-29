@@ -1,0 +1,55 @@
+{
+  "schema": "guardrail.deploy-receipt.v0",
+  "timestamp": "2026-05-29T12:22:04.365Z",
+  "command": [
+    "wrangler",
+    "deploy"
+  ],
+  "configPath": "/Users/jcoeyman/cloudflare/echo/wrangler.jsonc",
+  "git": {
+    "sha": "ebc67f9f8572ee7c84a16e121a1fe45dbd7c65b4",
+    "dirty": true,
+    "remote": "https://github.com/acoyfellow/echo.git"
+  },
+  "decision": {
+    "allowed": true,
+    "findings": [
+      {
+        "severity": "WARNING",
+        "message": "workers_dev = true — Worker will have a public workers.dev URL with sensitive bindings"
+      },
+      {
+        "severity": "WARNING",
+        "message": "workflow binding \"PLAN\" exposed on workers.dev URL"
+      },
+      {
+        "severity": "WARNING",
+        "message": "durable_object_namespace binding \"ECHO_AGENT\" exposed on workers.dev URL"
+      }
+    ]
+  },
+  "exposure": {
+    "isPublic": true,
+    "surface": "workers.dev URL",
+    "reason": "workers_dev = true",
+    "criticalMessage": "workers_dev = true — Worker will have a public workers.dev URL with sensitive bindings",
+    "routes": [],
+    "workersDev": true
+  },
+  "bindings": [
+    {
+      "type": "workflow",
+      "name": "PLAN"
+    },
+    {
+      "type": "durable_object_namespace",
+      "name": "ECHO_AGENT"
+    }
+  ],
+  "auth": {
+    "detected": false,
+    "partial": false,
+    "patterns": [],
+    "source": "/Users/jcoeyman/cloudflare/echo/src/index.ts"
+  }
+}
