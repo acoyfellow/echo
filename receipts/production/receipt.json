@@ -2,8 +2,9 @@
   "status": "passed",
   "origin": "https://echo.coey.dev",
   "version": "0.0.1",
-  "workerVersionId": "69914259-12ba-4756-b0bd-d0c21150ca88",
-  "verifiedAt": "2026-09-10T21:59:00Z",
+  "workerVersionId": "ea55c90f-3d87-45cb-83bc-2e7b2845f937",
+  "deployedCommit": "9eba43f6b3af205bfcb1c8abed6682e223b5d1c2",
+  "verifiedAt": "2026-09-10T22:33:00Z",
   "browser": "cmux WKWebView 0.64.22",
   "observations": {
     "health": { "ok": true, "version": "0.0.1", "mode": "prod" },
@@ -18,9 +19,14 @@
       "sessionVisible": false
     }
   },
+  "screenshot": {
+    "path": "receipts/production/demo.png",
+    "sha256": "b5887d736aa16c6c681a2d15f48d054ac34566643b90090798301b9301e8b8d4",
+    "visibleState": ["Updated through Echo", "Agent access stopped", "finished: setDraft"]
+  },
   "independentEvidence": [
     "cmux browser observed the deployed page complete a deterministic setDraft capability call",
     "cmux browser observed Stop remove the visible session while preserving the completed draft",
-    "receipts/production/demo.png"
+    "receipts/production/demo.png visibly records the preserved draft, completed capability activity, and stopped access state"
   ]
 }

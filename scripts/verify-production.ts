@@ -44,8 +44,25 @@ const receipt = Bun.file("receipts/production/receipt.json");
 if (!await receipt.exists()) failures.push("production browser receipt is missing");
 else {
   const text = await receipt.text();
-  const value = JSON.parse(text) as { status?: string; origin?: string; independentEvidence?: string[] };
+  const value = JSON.parse(text) as {
+    status?: string;
+    origin?: string;
+    workerVersionId?: string;
+    deployedCommit?: string;
+    independentEvidence?: string[];
+    screenshot?: { path?: string; sha256?: string; visibleState?: string[] };
+  };
   if (value.status !== "passed" || value.origin !== origin || !value.independentEvidence?.length) failures.push("production browser receipt is incomplete");
+  if (!value.workerVersionId || !value.deployedCommit || value.deployedCommit.length !== 40) failures.push("production deployment identity is incomplete");
+  if (!value.screenshot?.path || !value.screenshot.sha256 || value.screenshot.visibleState?.length !== 3) failures.push("production screenshot receipt is incomplete");
+  else {
+    const screenshot = Bun.file(value.screenshot.path);
+    if (!await screenshot.exists()) failures.push("production screenshot is missing");
+    else {
+      const hash = new Bun.CryptoHasher("sha256").update(await screenshot.arrayBuffer()).digest("hex");
+      if (hash !== value.screenshot.sha256) failures.push("production screenshot hash does not match its receipt");
+    }
+  }
   if (/mcp\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]{40,}/.test(text)) failures.push("production receipt contains an MCP credential");
 }
 
