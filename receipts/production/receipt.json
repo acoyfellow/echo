@@ -2,9 +2,9 @@
   "status": "passed",
   "origin": "https://echo.coey.dev",
   "version": "0.0.1",
-  "workerVersionId": "ea55c90f-3d87-45cb-83bc-2e7b2845f937",
-  "deployedCommit": "9eba43f6b3af205bfcb1c8abed6682e223b5d1c2",
-  "verifiedAt": "2026-09-10T22:33:00Z",
+  "workerVersionId": "406f32ad-f682-41d9-82fa-290da277c26b",
+  "deployedCommit": "1c97c8149e416dee64a5bc03cbba22bf881327bc",
+  "verifiedAt": "2026-09-10T22:48:00Z",
   "browser": "cmux WKWebView 0.64.22",
   "observations": {
     "health": { "ok": true, "version": "0.0.1", "mode": "prod" },
