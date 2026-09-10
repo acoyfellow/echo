@@ -6,7 +6,7 @@ Echo is a small TypeScript client and a Cloudflare Worker. An app registers a sh
 
 Echo does not need a browser extension, Chrome DevTools, WebDriver, or native WebMCP. Those tools may inspect an end-to-end test, but they are not part of Echo's product connection.
 
-> Status: `0.0.1`, private experiment. Do not publish it yet.
+> Status: `0.0.1`, public experiment at [echo.coey.dev](https://echo.coey.dev).
 
 ## Try the local demo
 
@@ -107,7 +107,7 @@ bun run verify:extension-free
 
 The checked receipts name the exact browser versions. Browser state and screenshots are captured by an independent test referee. Echo's own response is not enough to pass.
 
-Current evidence lives under `receipts/extension-free/`.
+Local browser evidence lives under `receipts/extension-free/`. Production browser evidence lives under `receipts/production/`.
 
 ## Current limits
 
@@ -115,7 +115,7 @@ Current evidence lives under `receipts/extension-free/`.
 - A normal page cannot control browser chrome or other origins.
 - Programmatic page actions are not trusted user input.
 - The current demo uses one active page connection per session.
-- The current receipts use a local loopback Worker.
+- Cross-browser protocol receipts use a local loopback Worker; the production receipt verifies the deployed demo separately.
 - Codemode through Worker Loader is not implemented yet.
 
 ## Repository layout

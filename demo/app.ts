@@ -12,12 +12,20 @@ const activity = document.querySelector<HTMLElement>("#activity");
 if (!title || !draft || !connect || !run || !stop || !status || !session || !activity) throw new Error("demo_markup_missing");
 
 const workerBase = document.body.dataset.workerBase || window.location.origin;
+const proofKey = "echo-demo-proof";
+const savedProof = sessionStorage.getItem(proofKey);
+if (savedProof) {
+  const proof = JSON.parse(savedProof) as { draft?: string; activity?: string };
+  if (proof.draft) draft.value = proof.draft;
+  if (proof.activity) activity.textContent = proof.activity;
+}
 let mcpUrl = "";
 const echo = createEcho({
   workerBase,
   appId: "echo-notes-demo",
   onActivity(event) {
     activity.textContent = `${event.status}: ${event.capability}`;
+    sessionStorage.setItem(proofKey, JSON.stringify({ draft: draft.value, activity: activity.textContent }));
   },
 });
 
@@ -114,12 +122,18 @@ run.addEventListener("click", async () => {
         },
       }),
     });
-    const result = await response.json() as { result?: { isError?: boolean } };
-    status.textContent = result.result?.isError ? "Demo task failed" : "Demo task complete";
+    const result = await response.json() as {
+      error?: unknown;
+      result?: { isError?: boolean; structuredContent?: { ok?: boolean } };
+    };
+    if (!response.ok || result.error || result.result?.isError || result.result?.structuredContent?.ok !== true) {
+      throw new Error("demo_call_failed");
+    }
+    status.textContent = "Demo task complete";
   } catch {
     status.textContent = "Demo task failed";
   } finally {
-    run.disabled = false;
+    run.disabled = !mcpUrl;
   }
 });
 

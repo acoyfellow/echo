@@ -21,3 +21,7 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run verify:extension-free
+      - if: github.event_name == 'push'
+        run: bun run verify:production
+      - if: github.event_name == 'push'
+        run: bun run verify:reviews
