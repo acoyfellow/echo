@@ -1,0 +1,19 @@
+receipts/extension-free/safari-local/receipt.json
+  s_5b490267d93687::t_0cdfae6414d999 28,40-41,45-46,50-56,67-71,74-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "672f97a370494d5b314db7e994df916a3a3c6516",
+  "prompts": {},
+  "sessions": {
+    "s_5b490267d93687": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a085d5-ded7-7469-b95a-07364692d90f",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
