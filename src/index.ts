@@ -12,7 +12,12 @@ export default {
     const url = new URL(request.url);
     const signingReady = typeof env.ECHO_SIGNING_SECRET === "string" && env.ECHO_SIGNING_SECRET.length >= 32 && !env.ECHO_SIGNING_SECRET.includes("generate-with");
     if (url.pathname === "/health") {
-      return Response.json({ ok: signingReady, version: "0.0.1", mode: env.ECHO_HOSTED_INSTANCE === "dev" ? "dev" : "prod" }, { status: signingReady ? 200 : 503 });
+      return Response.json({
+        ok: signingReady,
+        version: "0.0.1",
+        mode: env.ECHO_HOSTED_INSTANCE === "dev" ? "dev" : "prod",
+        commit: env.ECHO_COMMIT_SHA ?? "local",
+      }, { status: signingReady ? 200 : 503 });
     }
     if (!signingReady && (url.pathname === "/sessions" || url.pathname === "/mcp" || url.pathname.startsWith("/agents/"))) {
       return Response.json({ error: "signing_secret_unavailable" }, { status: 503 });

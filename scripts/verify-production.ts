@@ -2,6 +2,7 @@ import { $ } from "bun";
 
 const origin = process.env.ECHO_PRODUCTION_URL ?? "https://echo.coey.dev";
 const failures: string[] = [];
+let liveCommit = "";
 
 async function read(path: string): Promise<{ response: Response; text: string }> {
   const response = await fetch(`${origin}${path}`, { redirect: "follow" });
@@ -11,8 +12,9 @@ async function read(path: string): Promise<{ response: Response; text: string }>
 try {
   const health = await read("/health");
   if (health.response.status !== 200) failures.push(`health returned ${health.response.status}`);
-  const healthBody = JSON.parse(health.text) as { ok?: boolean; version?: string; mode?: string };
+  const healthBody = JSON.parse(health.text) as { ok?: boolean; version?: string; mode?: string; commit?: string };
   if (!healthBody.ok || healthBody.version !== "0.0.1" || healthBody.mode !== "prod") failures.push("health payload is not production 0.0.1");
+  liveCommit = healthBody.commit ?? "";
 
   const landing = await read("/");
   if (landing.response.status !== 200) failures.push(`landing returned ${landing.response.status}`);
@@ -60,9 +62,10 @@ else {
     if (ancestor.exitCode !== 0) failures.push("production commit is not an ancestor of the verified source");
     else {
       const changed = (await $`git diff --name-only ${value.deployedCommit}..${head}`.text()).trim().split("\n").filter(Boolean);
-      const unbound = changed.filter((path) => path !== "scripts/verify-production.ts" && !path.startsWith("receipts/production/") && !path.startsWith("receipts/reviews/"));
+      const unbound = changed.filter((path) => !path.startsWith("receipts/production/") && !path.startsWith("receipts/reviews/"));
       if (unbound.length) failures.push(`runtime source changed after production deployment: ${unbound.join(", ")}`);
     }
+    if (liveCommit !== value.deployedCommit) failures.push("live production commit does not match its receipt");
   }
   if (!value.screenshot?.path || !value.screenshot.sha256 || value.screenshot.visibleState?.length !== 3) failures.push("production screenshot receipt is incomplete");
   else {

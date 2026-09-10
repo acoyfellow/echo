@@ -7,6 +7,7 @@ export interface Env {
   ECHO_HOSTED_INSTANCE: string;
   ECHO_MAX_SESSION_HOURS: string;
   ECHO_MAX_MCP_BYTES: string;
+  ECHO_COMMIT_SHA?: string;
 }
 
 export type WebMcpResult = {
