@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "origin": "https://echo.coey.dev",
+  "version": "0.0.1",
+  "workerVersionId": "69914259-12ba-4756-b0bd-d0c21150ca88",
+  "verifiedAt": "2026-09-10T21:59:00Z",
+  "browser": "cmux WKWebView 0.64.22",
+  "observations": {
+    "health": { "ok": true, "version": "0.0.1", "mode": "prod" },
+    "demoBeforeStop": {
+      "status": "Demo task complete",
+      "draft": "Updated through Echo",
+      "activity": "finished: setDraft"
+    },
+    "demoAfterStop": {
+      "status": "Agent access stopped",
+      "draft": "Updated through Echo",
+      "sessionVisible": false
+    }
+  },
+  "independentEvidence": [
+    "cmux browser observed the deployed page complete a deterministic setDraft capability call",
+    "cmux browser observed Stop remove the visible session while preserving the completed draft",
+    "receipts/production/demo.png"
+  ]
+}
