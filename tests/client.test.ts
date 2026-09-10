@@ -37,7 +37,10 @@ function setup(capability?: EchoCapability) {
     appId: "notes",
     origin: "https://notes.example",
     fetch: fetcher,
-    createSocket: () => socket,
+    createSocket: () => {
+      queueMicrotask(() => socket.emit("open", new Event("open")));
+      return socket;
+    },
   });
   client.register({
     changeDraft: capability ?? {

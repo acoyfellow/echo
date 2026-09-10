@@ -94,6 +94,25 @@ export class EchoClient {
     this.#session = session;
     this.#socket = socket;
     socket.addEventListener("message", (event) => void this.#onMessage(event as MessageEvent));
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("page_connection_timeout")), 10_000);
+      socket.addEventListener("open", () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      socket.addEventListener("error", () => {
+        clearTimeout(timeout);
+        reject(new Error("page_connection_failed"));
+      });
+      socket.addEventListener("close", () => {
+        clearTimeout(timeout);
+        reject(new Error("page_connection_closed"));
+      });
+    }).catch((error) => {
+      if (this.#socket === socket) this.#socket = null;
+      socket.close();
+      throw error;
+    });
     socket.addEventListener("close", () => {
       if (this.#socket === socket) this.#socket = null;
     });
