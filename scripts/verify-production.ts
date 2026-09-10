@@ -1,4 +1,4 @@
-export {};
+import { $ } from "bun";
 
 const origin = process.env.ECHO_PRODUCTION_URL ?? "https://echo.coey.dev";
 const failures: string[] = [];
@@ -54,6 +54,16 @@ else {
   };
   if (value.status !== "passed" || value.origin !== origin || !value.independentEvidence?.length) failures.push("production browser receipt is incomplete");
   if (!value.workerVersionId || !value.deployedCommit || value.deployedCommit.length !== 40) failures.push("production deployment identity is incomplete");
+  else {
+    const head = (await $`git rev-parse HEAD`.text()).trim();
+    const ancestor = await $`git merge-base --is-ancestor ${value.deployedCommit} ${head}`.quiet().nothrow();
+    if (ancestor.exitCode !== 0) failures.push("production commit is not an ancestor of the verified source");
+    else {
+      const changed = (await $`git diff --name-only ${value.deployedCommit}..${head}`.text()).trim().split("\n").filter(Boolean);
+      const unbound = changed.filter((path) => path !== "scripts/verify-production.ts" && !path.startsWith("receipts/production/") && !path.startsWith("receipts/reviews/"));
+      if (unbound.length) failures.push(`runtime source changed after production deployment: ${unbound.join(", ")}`);
+    }
+  }
   if (!value.screenshot?.path || !value.screenshot.sha256 || value.screenshot.visibleState?.length !== 3) failures.push("production screenshot receipt is incomplete");
   else {
     const screenshot = Bun.file(value.screenshot.path);
