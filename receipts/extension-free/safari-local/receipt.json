@@ -25,7 +25,7 @@
       "platformName": "macOS",
       "safari:diagnose": false
     },
-    "origin": "http://127.0.0.1:8870"
+    "appOrigin": "http://127.0.0.1:8871"
   },
   "transport": {
     "extension": false,
@@ -35,25 +35,25 @@
   },
   "observations": {
     "calls": {
-      "duplicate": {
-        "error": null,
-        "http": 200,
-        "ok": true
-      },
       "denied": {
-        "error": "capability_not_granted",
         "http": 200,
-        "ok": false
+        "ok": false,
+        "error": "capability_not_granted"
       },
       "read": {
-        "error": null,
         "http": 200,
-        "ok": true
+        "ok": true,
+        "error": null
       },
       "mutate": {
-        "error": null,
         "http": 200,
-        "ok": true
+        "ok": true,
+        "error": null
+      },
+      "duplicate": {
+        "http": 200,
+        "ok": true,
+        "error": null
       }
     },
     "beforeStop": {
@@ -64,17 +64,27 @@
     "afterStop": {
       "draft": "Updated by local Safari",
       "status": "Agent access stopped",
-      "http": 200,
-      "error": "session_closed"
+      "call": {
+        "http": 200,
+        "ok": false,
+        "error": "session_closed"
+      }
     },
     "uncertain": {
-      "first": "session_closed",
-      "draft": "Uncertain Safari effect",
-      "status": "Agent access stopped"
-    },
-    "uncertainDuplicate": {
-      "error": "outcome_unknown",
-      "draft": "Uncertain Safari effect"
+      "call": {
+        "http": 200,
+        "ok": false,
+        "error": "session_closed"
+      },
+      "duplicate": {
+        "http": 200,
+        "ok": false,
+        "error": "outcome_unknown"
+      },
+      "page": {
+        "draft": "Uncertain Safari effect",
+        "status": "Agent access stopped"
+      }
     }
   },
   "independentEvidence": [

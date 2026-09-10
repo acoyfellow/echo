@@ -2,7 +2,7 @@ import { routeAgentRequest } from "agents";
 import { verifyCapability } from "./auth";
 import { handleMcp } from "./mcp";
 import { renderFavicon, renderLanding, renderOg, renderRobots, renderSitemap } from "./site";
-import { handleSessionCreate } from "./sessions";
+import { handleSessionCreate, handleSessionPreflight } from "./sessions";
 import type { Env } from "./types";
 
 export { EchoAgent } from "./agent";
@@ -17,6 +17,7 @@ export default {
     if (!signingReady && (url.pathname === "/sessions" || url.pathname === "/mcp" || url.pathname.startsWith("/agents/"))) {
       return Response.json({ error: "signing_secret_unavailable" }, { status: 503 });
     }
+    if (url.pathname === "/sessions" && request.method === "OPTIONS") return handleSessionPreflight(request);
     if (url.pathname === "/sessions" && request.method === "POST") return handleSessionCreate(request, env);
     if (url.pathname === "/mcp") return handleMcp(request, env);
     if (url.pathname.startsWith("/agents/")) {

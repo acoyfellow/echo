@@ -38,7 +38,11 @@ for (const [name, path] of Object.entries(paths)) {
   }
   if (!receipt.environment?.browser || !receipt.environment.browserVersion && name !== "chrome") failures.push(`${name}: browser version missing`);
   if (name !== "safari" && (receipt.transport?.extension !== false || receipt.transport?.nativeWebMcp !== false)) failures.push(`${name}: transport boundary missing`);
-  if (name !== "safari" && (!receipt.independentEvidence || receipt.independentEvidence.length === 0)) failures.push(`${name}: independent evidence missing`);
+  if (!receipt.independentEvidence || receipt.independentEvidence.length === 0) failures.push(`${name}: independent evidence missing`);
+  for (const evidence of receipt.independentEvidence ?? []) {
+    if (!evidence.startsWith("receipts/")) continue;
+    if (!await Bun.file(evidence).exists()) failures.push(`${name}: evidence file missing at ${evidence}`);
+  }
 }
 
 if (failures.length > 0) {

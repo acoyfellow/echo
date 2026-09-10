@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "bun run build:demo && wrangler dev --port 8870 --inspector-port 0",
     "dev:fresh": "pkill -f 'wrangler dev' 2>/dev/null; pkill workerd 2>/dev/null; sleep 1; wrangler dev --port 8870 --inspector-port 0",
-    "deploy": "bun run build:demo && wrangler deploy --config wrangler.production.jsonc",
+    "deploy": "bun scripts/deploy-production.ts",
     "build:demo": "bun scripts/build-demo.ts",
     "typecheck": "tsc -p tsconfig.worker.json --pretty false && tsc -p tsconfig.client.json --pretty false && tsc -p tsconfig.scripts.json --pretty false && tsc -p tsconfig.tests.json --pretty false",
     "test": "bun test",

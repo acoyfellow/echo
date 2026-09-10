@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Env } from "../src/types";
 import { verifyCapability } from "../src/auth";
 
-import { handleSessionCreate } from "../src/sessions";
+import { handleSessionCreate, handleSessionPreflight } from "../src/sessions";
 
 const secret = "test-secret-must-be-long-enough-for-hmac-sha-256-xxxxxxxxxxxxxxxx";
 const env = {
@@ -24,6 +24,17 @@ function request(originHeader?: string, bodyOrigin = "https://notes.example", ca
 }
 
 describe("page session grants", () => {
+  test("allows a bounded preflight for a secure app origin", () => {
+    const response = handleSessionPreflight(new Request("https://echo.example/sessions", {
+      method: "OPTIONS",
+      headers: { origin: "https://notes.example", "access-control-request-method": "POST" },
+    }));
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://notes.example");
+    expect(response.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
+    expect(handleSessionPreflight(new Request("https://echo.example/sessions", { method: "OPTIONS" })).status).toBe(403);
+  });
+
   test("requires the browser request origin to match the app origin", async () => {
     expect((await handleSessionCreate(request(), env)).status).toBe(403);
     expect((await handleSessionCreate(request("https://other.example"), env)).status).toBe(403);
@@ -32,6 +43,7 @@ describe("page session grants", () => {
   test("signs the exact app and capability grant into both authority channels", async () => {
     const response = await handleSessionCreate(request("https://notes.example"), env);
     expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://notes.example");
     const session = await response.json() as { pageToken: string; mcpToken: string };
     const page = await verifyCapability(secret, session.pageToken, "page");
     const mcp = await verifyCapability(secret, session.mcpToken, "mcp");
