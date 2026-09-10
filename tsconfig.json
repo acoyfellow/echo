@@ -1,8 +1,4 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.worker.json" },
-    { "path": "./tsconfig.extension.json" },
-    { "path": "./tsconfig.scripts.json" }
-  ]
+  "extends": "./tsconfig.tests.json",
+  "include": ["src/**/*.ts", "extension/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"]
 }

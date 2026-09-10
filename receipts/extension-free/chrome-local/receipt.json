@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "claim": "The extension-free Echo client works in a real Chrome tab.",
+  "environment": {
+    "browser": "Chrome/150.0.7871.187",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+    "origin": "http://127.0.0.1:8870"
+  },
+  "transport": {
+    "extension": false,
+    "productCdp": false,
+    "nativeWebMcp": false,
+    "referee": "Chrome DevTools Protocol"
+  },
+  "observations": {
+    "calls": {
+      "read": {
+        "http": 200,
+        "ok": true,
+        "error": null
+      },
+      "mutate": {
+        "http": 200,
+        "ok": true,
+        "error": null
+      },
+      "duplicate": {
+        "http": 200,
+        "ok": true,
+        "error": null
+      }
+    },
+    "beforeStop": {
+      "draft": "Updated by local Chrome",
+      "status": "Agent access active",
+      "activity": "finished: setDraft"
+    },
+    "afterStop": {
+      "http": 200,
+      "error": "session_closed",
+      "draft": "Updated by local Chrome",
+      "status": "Agent access stopped"
+    }
+  },
+  "independentEvidence": [
+    "Chrome DOM values read by the E2E referee",
+    "receipts/extension-free/chrome-local/stopped.png"
+  ],
+  "redactions": [
+    "MCP session credential",
+    "Worker signing secret"
+  ],
+  "limitations": [
+    "CDP is used by the independent test referee, not by Echo's product transport.",
+    "The Worker runs locally on loopback."
+  ]
+}

@@ -1,69 +1,57 @@
-/**
- * MCP endpoint — JSON-RPC over HTTP.
- *
- * One tool surface:
- *   initialize     → server capabilities
- *   tools/list     → ["run", "status"]
- *   tools/call run    args: { plan: string }      → { planId }
- *   tools/call status args: { planId: string }    → { status, ... }
- *
- * The `plan` string is a function expression:
- *
- *   async ({ tab, log }) => {
- *     const r = await tab.execute(`
- *       const data = await fetch("/api/things", { credentials: "include" });
- *       return await data.json();
- *     `);
- *     log("got " + r.result.length + " items");
- *     return r.result;
- *   }
- *
- * Session is identified by ?id=<signed-session-id>.
- */
-
 import { getAgentByName } from "agents";
+import { mintWorkerCapability, verifyCapability } from "./auth";
+import { readBoundedBody } from "./body";
 import type { Env } from "./types";
-import { verifySessionId } from "./auth";
 
-const TOOLS = [
+const tools = [
   {
-    name: "run",
-    description: "Submit a plan to run against the user's authenticated tab. The plan is a JS function expression `async ({ tab, log }) => unknown` that calls `await tab.execute(`<page-realm code>`)` to interact with the tab.",
+    name: "echo_list_capabilities",
+    description: "List capabilities exposed by the user-approved app tab.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "echo_call_capability",
+    description: "Call one capability exposed by the user-approved app tab.",
     inputSchema: {
       type: "object",
       properties: {
-        plan: {
-          type: "string",
-          description: "JS function expression: `async ({ tab, log }) => { ... }`. `tab.execute(code)` runs code in the page's realm; `log(...)` records to the receipt.",
-        },
+        name: { type: "string", maxLength: 128 },
+        input: {},
+        operationId: { type: "string", minLength: 1, maxLength: 128 },
       },
-      required: ["plan"],
-    },
-  },
-  {
-    name: "status",
-    description: "Get the workflow status + step log for a plan.",
-    inputSchema: {
-      type: "object",
-      properties: { planId: { type: "string" } },
-      required: ["planId"],
+      required: ["name", "input"],
     },
   },
 ];
 
-type RpcReq = { id?: string | number; method?: string; params?: { name?: string; arguments?: unknown } };
+type RpcRequest = {
+  id?: string | number | null;
+  method?: string;
+  params?: { name?: string; arguments?: unknown };
+};
 
-export async function handleMcp(req: Request, env: Env): Promise<Response> {
-  if (req.method !== "POST") return Response.json({ error: "method_not_allowed" }, { status: 405 });
+function rpcError(id: RpcRequest["id"], code: number, message: string): Response {
+  return Response.json({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
+}
 
-  const url = new URL(req.url);
-  const signed = url.searchParams.get("id");
+export async function handleMcp(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return Response.json({ error: "method_not_allowed" }, { status: 405 });
+  const maxBytes = Number(env.ECHO_MAX_MCP_BYTES || "131072");
+  const declaredBytes = Number(request.headers.get("content-length") || "0");
+  if (declaredBytes > maxBytes) return Response.json({ error: "request_too_large" }, { status: 413 });
+  const text = await readBoundedBody(request, maxBytes);
+  if (text === null) return Response.json({ error: "request_too_large" }, { status: 413 });
+  let body: RpcRequest;
+  try { body = JSON.parse(text) as RpcRequest; }
+  catch { return rpcError(null, -32700, "parse_error"); }
+
+  const signed = new URL(request.url).searchParams.get("id");
   if (!signed) return Response.json({ error: "session_id_required" }, { status: 400 });
-
-  const verified = await verifySessionId(env.ECHO_SIGNING_SECRET, signed);
+  const verified = await verifyCapability(env.ECHO_SIGNING_SECRET, signed, "mcp");
   if (!verified) return Response.json({ error: "invalid_session" }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as RpcReq;
+  if (body.method?.startsWith("notifications/")) return new Response(null, { status: 202 });
+  if (body.id === undefined) return rpcError(null, -32600, "request_id_required");
 
   if (body.method === "initialize") {
     return Response.json({
@@ -76,50 +64,38 @@ export async function handleMcp(req: Request, env: Env): Promise<Response> {
       },
     });
   }
+  if (body.method === "tools/list") return Response.json({ jsonrpc: "2.0", id: body.id, result: { tools } });
+  if (body.method !== "tools/call") return rpcError(body.id, -32601, "method_not_found");
 
-  if (body.method === "tools/list") {
-    return Response.json({ jsonrpc: "2.0", id: body.id, result: { tools: TOOLS } });
-  }
-
-  if (body.method === "tools/call") {
-    const name = body.params?.name;
-    const args = body.params?.arguments as Record<string, unknown> | undefined;
-    if (!name || !TOOLS.find((t) => t.name === name)) {
-      return Response.json({ jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "tool_not_found" } });
+  const name = body.params?.name;
+  const args = body.params?.arguments as Record<string, unknown> | undefined;
+  if (!tools.some((tool) => tool.name === name)) return rpcError(body.id, -32601, "tool_not_found");
+  const agent = await getAgentByName(env.ECHO_AGENT, verified.id);
+  const workerToken = await mintWorkerCapability(env.ECHO_SIGNING_SECRET, verified.id, verified.origin, verified.expiresAt, verified.appId, verified.grants);
+  let result;
+  if (name === "echo_list_capabilities") result = await agent.listCapabilities(workerToken);
+  else {
+    const capabilityName = String(args?.name ?? "");
+    const operationId = typeof args?.operationId === "string" ? args.operationId : undefined;
+    if (!capabilityName || capabilityName.length > 128) result = { ok: false, error: "capability_name_invalid" };
+    else if (!args || !Object.hasOwn(args, "input")) result = { ok: false, error: "capability_input_required" };
+    else if (operationId && operationId.length > 128) result = { ok: false, error: "operation_id_invalid" };
+    else {
+      const inputBytes = new TextEncoder().encode(JSON.stringify(args.input)).byteLength;
+      result = inputBytes > 65536
+        ? { ok: false, error: "capability_input_too_large" }
+        : await agent.callCapability(workerToken, capabilityName, args.input, operationId);
     }
-
-    const agent = await getAgentByName(env.ECHO_AGENT, verified.id);
-
-    let result: unknown;
-    let isError = false;
-    try {
-      if (name === "run") {
-        const plan = String(args?.plan ?? "");
-        if (!plan) { result = { error: "plan_required" }; isError = true; }
-        else result = await agent.run(plan);
-      } else if (name === "status") {
-        const planId = String(args?.planId ?? "");
-        if (!planId) { result = { error: "planId_required" }; isError = true; }
-        else {
-          result = await agent.status(planId);
-          if (typeof result === "object" && result && "error" in result) isError = true;
-        }
-      }
-    } catch (e) {
-      result = { error: "tool_threw", detail: String(e) };
-      isError = true;
-    }
-
-    return Response.json({
-      jsonrpc: "2.0",
-      id: body.id,
-      result: {
-        content: [{ type: "text", text: JSON.stringify(result) }],
-        structuredContent: result,
-        isError,
-      },
-    });
   }
-
-  return Response.json({ jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "method_not_found" } });
+  const serialized = JSON.stringify(result);
+  const bounded = new TextEncoder().encode(serialized).byteLength > 262144 ? { ok: false, error: "tool_result_too_large" } : result;
+  return Response.json({
+    jsonrpc: "2.0",
+    id: body.id,
+    result: {
+      content: [{ type: "text", text: JSON.stringify(bounded) }],
+      structuredContent: bounded,
+      isError: !bounded.ok,
+    },
+  });
 }

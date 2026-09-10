@@ -6,8 +6,11 @@ build/
 .dev.vars.*
 !.dev.vars.example
 *.log
+*.tsbuildinfo
 .DS_Store
 extension/dist/
+public/echo-demo.js
+.pi/
 
 # local wrangler guardrail audit receipts (machine-specific, not part of echo)
 .guardrail/

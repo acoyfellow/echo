@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "claim": "The extension-free Echo client works in a real Safari tab.",
+  "environment": {
+    "browser": "Safari",
+    "browserVersion": "26.4",
+    "capabilities": {
+      "safari:platformVersion": "26.4.1",
+      "safari:automaticInspection": false,
+      "webkit:WebRTC": {
+        "DisableICECandidateFiltering": false,
+        "DisableInsecureMediaCapture": false
+      },
+      "webkit:alwaysAllowAutoplay": false,
+      "browserVersion": "26.4",
+      "strictFileInteractability": false,
+      "browserName": "Safari",
+      "safari:useSimulator": false,
+      "safari:automaticProfiling": false,
+      "setWindowRect": true,
+      "acceptInsecureCerts": false,
+      "safari:platformBuildVersion": "25E253",
+      "safari:experimentalWebSocketUrl": false,
+      "platformName": "macOS",
+      "safari:diagnose": false
+    },
+    "origin": "http://127.0.0.1:8870"
+  },
+  "transport": {
+    "extension": false,
+    "productWebDriver": false,
+    "nativeWebMcp": false,
+    "referee": "SafariDriver WebDriver"
+  },
+  "observations": {
+    "calls": {
+      "duplicate": {
+        "error": null,
+        "http": 200,
+        "ok": true
+      },
+      "denied": {
+        "error": "capability_not_granted",
+        "http": 200,
+        "ok": false
+      },
+      "read": {
+        "error": null,
+        "http": 200,
+        "ok": true
+      },
+      "mutate": {
+        "error": null,
+        "http": 200,
+        "ok": true
+      }
+    },
+    "beforeStop": {
+      "draft": "Updated by local Safari",
+      "status": "Agent access active",
+      "activity": "finished: setDraft"
+    },
+    "afterStop": {
+      "draft": "Updated by local Safari",
+      "status": "Agent access stopped",
+      "http": 200,
+      "error": "session_closed"
+    },
+    "uncertain": {
+      "first": "session_closed",
+      "draft": "Uncertain Safari effect",
+      "status": "Agent access stopped"
+    },
+    "uncertainDuplicate": {
+      "error": "outcome_unknown",
+      "draft": "Uncertain Safari effect"
+    }
+  },
+  "independentEvidence": [
+    "Safari DOM values read by the E2E referee",
+    "receipts/extension-free/safari-local/stopped.png"
+  ],
+  "redactions": [
+    "MCP session credential",
+    "Worker signing secret"
+  ],
+  "limitations": [
+    "WebDriver is used by the independent test referee, not by Echo's product transport.",
+    "The Worker runs locally on loopback."
+  ]
+}

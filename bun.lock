@@ -5,16 +5,14 @@
     "": {
       "name": "echo",
       "dependencies": {
-        "agents": "*",
-        "hono": "*",
-        "zod": "*",
+        "agents": "0.13.3",
       },
       "devDependencies": {
-        "@cloudflare/workers-types": "*",
-        "@types/chrome": "^0.1.42",
-        "bun-types": "*",
-        "typescript": "*",
-        "wrangler": "*",
+        "@cloudflare/workers-types": "4.20260527.1",
+        "@types/chrome": "0.1.42",
+        "bun-types": "1.3.14",
+        "typescript": "6.0.3",
+        "wrangler": "4.95.0",
       },
     },
   },

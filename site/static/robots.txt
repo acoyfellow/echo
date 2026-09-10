@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://echo.coey.dev/sitemap.xml

@@ -13,10 +13,10 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "composite": true,
     "rootDir": "."
   },
   "include": [
-    "extension/build.ts"
+    "e2e/**/*.ts",
+    "scripts/**/*.ts"
   ]
 }

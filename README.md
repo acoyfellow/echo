@@ -1,135 +1,141 @@
-# echo
+# Echo
 
-**Your logged-in browser tab, as an MCP target.**
+**Let an agent use capabilities exposed by one user-approved live app tab.**
 
-An agent can drive any browser tab you're already signed into, without ever holding your password. echo is a Chrome extension + a Cloudflare Worker. The agent submits a plan over MCP; Cloudflare runs it inside a sandbox whose only outbound is a WebSocket back to your tab.
+Echo is a small TypeScript client and a Cloudflare Worker. An app registers a short list of actions. A person connects the current tab. The agent can call only those actions until the person presses Stop.
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/echo) · [live demo](https://echo.coey.dev/demo)
+Echo does not need a browser extension, Chrome DevTools, WebDriver, or native WebMCP. Those tools may inspect an end-to-end test, but they are not part of Echo's product connection.
 
-```ts
-// what an agent calls — one MCP tool, run(plan)
-const { planId } = await mcp.tools.call("run", {
-  plan: `
-    async ({ tab, log }) => {
-      // runs in your tab's realm, with your session cookies
-      const r = await tab.execute({
-        code: \`
-          const resp = await fetch("/api/issues?assignee=me", {
-            credentials: "include"
-          });
-          return await resp.json();
-        \`
-      });
-      log("got " + r.result.length + " issues");
-      return r.result;
-    }
-  `
-});
-```
+> Status: `0.0.1`, private experiment. Do not publish it yet.
 
-## How it works
+## Try the local demo
 
-1. You install the extension (load unpacked today — not in the Web Store yet).
-2. You open a tab you're already signed into.
-3. You click the echo icon. The extension mints an HMAC-signed session pinned to that tab's origin and opens a WebSocket to the Worker.
-4. You paste the MCP URL into your client (Claude Desktop, Cursor, etc.).
-5. The agent calls `run(plan)`. The Worker boots a Workflow, runs the plan in a Worker Loader sandbox with `globalOutbound: null`, and the plan's only way to do anything is `tab.execute({ code })` — which RPCs back through the WebSocket to your tab.
-6. The agent calls `status(planId)`. It gets the full step log: every snippet, every result, every log line. Durable.
-
-## What this replaces
-
-| Today | With echo |
-|---|---|
-| Generate a Jira/GitHub PAT, store it in 1Password, paste it into the agent's config | Click "open echo on this tab", agent reads your tickets via your already-signed-in session |
-| Run headless Chrome with stored cookies in a server somewhere | Use the browser you already have open |
-| Give the agent access to a service account that can see everything | Agent sees what *you* can see in that tab — no more |
-| "What did the agent do?" → guess from API logs | `echo.status(planId)` returns every code snippet and result |
-
-## Trust model
-
-| Capability | Status | Enforced by |
-|---|---|---|
-| Read DOM and run authenticated `fetch()` on the tab's origin | ✅ | content script / `chrome.scripting.executeScript({world: "MAIN"})` |
-| Make cross-origin requests subject to CORS | ✅ | the browser |
-| Reach the Worker's signing secret or other tabs | ❌ | `globalOutbound: null` in `src/agent.ts` |
-| Talk to a different tab than the one you opened the session on | ❌ | `state.tabId` is pinned in `extension/background.ts` |
-| Survive after you close the tab | ❌ | `chrome.tabs.onRemoved` revokes the session |
-| Be tampered with, or replayed after it expires | ❌ | HMAC-SHA-256 + expiry checked on every request in `src/auth.ts` |
-| Be re-pointed at a different origin than the one it was signed for | ❌ | the signed origin is enforced on the WebSocket route in `src/index.ts` |
-
-**You still have to trust the agent you give a session to.** Inside the tab's origin, plan code can do anything the page's own JS could do. echo bounds the *blast radius*; it does not replace good judgment about who you let drive.
-
-The signed session id is a bearer credential until it expires: anyone who obtains it before expiry can use it, the same as any token. echo keeps lifetimes short (default 8h, configurable) and ties each id to one origin and one tab, but treat the id like a password — don't paste it where you wouldn't paste a cookie.
-
-> Status: this is a v0.0.1 personal project, not audited. The trust model above reflects what the code enforces today; read the source before pointing it at anything sensitive.
-
-## Try it without installing anything
-
-The live demo at <https://echo.coey.dev/demo> hits the production Worker directly. You can write a plan, submit it, and see the workflow step history. With no extension attached, the plan call returns `session_unbound` — the supervisor refusing to deliver code to a tab that isn't there. That's the kill switch working; it's not a useful run.
-
-For a useful run, you need the extension and a tab.
-
-## Run it locally
-
-```bash
-git clone https://github.com/acoyfellow/echo && cd echo
+```sh
 bun install
+cp .dev.vars.example .dev.vars
 bun run dev
 ```
 
-Open <http://127.0.0.1:8870>.
+Open `http://127.0.0.1:8870/demo/`.
 
-## Deploy your own
+The demo exposes three capabilities:
 
-```bash
-git clone https://github.com/acoyfellow/echo && cd echo
-bun install
-bun run setup:secret     # mints an HMAC signing secret
-bun run deploy           # deploys to your Cloudflare account
+- `readState` reads the demo title and draft.
+- `setDraft` changes the draft.
+- `uncertainMutation` tests a disconnect after an effect and before its result.
+
+The page does not expose Connect or Stop as capabilities. A person must press those buttons.
+
+## Add Echo to an app
+
+```ts
+import { createEcho } from './client';
+
+const echo = createEcho({
+  workerBase: 'https://your-echo-worker.example',
+  appId: 'notes',
+});
+
+echo.register({
+  readState: {
+    description: 'Read the current document',
+    effect: 'read',
+    inputSchema: { type: 'object' },
+    run: () => readCurrentDocument(),
+  },
+  setDraft: {
+    description: 'Replace the current draft',
+    effect: 'mutation',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+    run: ({ text }, { operationId }) => saveDraft(text, operationId),
+  },
+});
+
+const session = await echo.connect();
 ```
 
-Or click the button at the top of this README.
+Call `echo.connect()` only from a clear user action. Show the requested capabilities before that action. Keep `echo.stop()` in a visible human-controlled button.
 
-You get one Worker with the docs site, the MCP endpoint, the WebSocket relay, per-session Durable Objects, and per-plan Workflows. Your account, your audit, your rate limits.
+## Agent tools
 
-## Install the extension
+Echo exposes two MCP tools:
 
-```bash
-bun run build:ext
-# Chrome → chrome://extensions → Developer mode → Load unpacked → echo/extension/dist
+- `echo_list_capabilities`
+- `echo_call_capability`
+
+A mutation requires an `operationId`. Echo stores its result. A repeated operation ID returns the stored result instead of running the mutation again. If the tab disconnects after dispatch and before a result, Echo returns `outcome_unknown`. It does not retry the mutation.
+
+## Security boundary
+
+Separate signed credentials connect the page and MCP client. Each credential binds one random session, app ID, origin, credential kind, and expiry. The Worker derives identity from the signed credential, not message text.
+
+Echo does not expose:
+
+- cookies or session tokens
+- local or session storage
+- arbitrary page JavaScript
+- arbitrary selectors
+- browser fetch
+- browser chrome
+- navigation to another origin
+- native permission prompts
+- trusted keyboard or pointer input
+- Connect, approval, or Stop controls
+
+Echo does not protect an app from its own same-origin JavaScript or XSS. The app remains responsible for each capability and its data-sharing policy.
+
+## Verify it
+
+Start the local Worker first:
+
+```sh
+bun run dev
 ```
 
-In the popup, set the Worker URL to your deployment (or `https://echo.coey.dev` for the hosted instance). Then click the echo icon on any tab you're signed into.
+Then run:
 
-Chrome Web Store submission is not done yet. If you'd rather wait, watch the repo.
-
-## What's under the hood
-
-- **Cloudflare Worker** — the MCP endpoint (`tools/list`, `tools/call`) plus the WebSocket relay
-- **Durable Object** — one per session; holds the WebSocket to your extension and routes sandbox → tab calls
-- **Worker Loader** — per-plan V8 sandbox with `globalOutbound: null`; the only thing the plan can talk to is the `TAB` binding handed to it
-- **Dynamic Workflows** — every plan is a workflow; step history is queryable for hours
-- **`agents` SDK** — wires the WebSocket transport and the workflow integration
-- **MV3 Chrome extension** — service worker holds the WS via PartySocket; content script + `chrome.scripting.executeScript({world: "MAIN"})` runs plan-supplied code in the page realm
-
-## Repo layout
-
+```sh
+bun run typecheck
+bun test
+bun run e2e:safari
+bun run verify:extension-free
 ```
-src/
-  index.ts        worker entry, all routes
-  agent.ts        EchoAgent — the supervisor (Agent DO)
-  plan.ts         EchoPlan — the Workflow that runs each plan
-  tab-binding.ts  WorkerEntrypoint the sandbox calls back through
-  mcp.ts          one MCP tool: run(plan) + status(planId)
-  auth.ts         HMAC-signed origin-pinned session ids
-  site.ts         the docs site + /demo, served from the same Worker
-extension/
-  manifest.json   MV3
-  background.ts   AgentClient (PartySocket) WS + message routing
-  content.ts      content script bridge (execute → MAIN world)
-  popup.ts        toolbar UI: open / close / copy MCP URL
+
+The checked receipts name the exact browser versions. Browser state and screenshots are captured by an independent test referee. Echo's own response is not enough to pass.
+
+Current evidence lives under `receipts/extension-free/`.
+
+## Current limits
+
+- Only apps that add the Echo client can use it.
+- A normal page cannot control browser chrome or other origins.
+- Programmatic page actions are not trusted user input.
+- The current demo uses one active page connection per session.
+- The current receipts use a local loopback Worker.
+- Codemode through Worker Loader is not implemented yet.
+
+## Repository layout
+
+```text
+client/       in-page Echo client
+demo/         disposable demo app
+src/          Worker, MCP, credentials, and Durable Object
+e2e/          independent browser referees
+receipts/     redacted browser evidence
+```
+
+## Check the current code
+
+```sh
+bun run typecheck
+bun test
+bun run build:demo
 ```
 
 ## License
 
-MIT.
+MIT
