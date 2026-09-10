@@ -1,0 +1,19 @@
+public/demo/index.html
+  s_5b490267d93687::t_7f8c5fbc0bdb35 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4c9c0971df1b30f74a5c07bbeebb90766eb96105",
+  "prompts": {},
+  "sessions": {
+    "s_5b490267d93687": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a085d5-ded7-7469-b95a-07364692d90f",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
