@@ -5,7 +5,7 @@ import { join } from "node:path";
 const base = process.env.ECHO_E2E_ORIGIN ?? "http://127.0.0.1:8870";
 const routes = [
   ["/", "Your app already knows what to do."],
-  ["/examples/", "Little apps. Real agent tools."],
+  ["/examples/", "Small apps with real agent tools."],
   ["/examples/todo/", "Tiny todo"],
   ["/examples/notes/", "Quarterly notes"],
 ] as const;
@@ -120,7 +120,11 @@ try {
   await waitFor("document.body.textContent.includes('SESSION CLOSED · the wire is cut')");
   const afterStop = await tool(endpoint, 3, "listTodos", {});
   if (afterStop.result?.structuredContent?.error !== "session_closed") throw new Error("site_stop_failed");
-  console.log("PASS: Svelte SSR, hydration, responsive layout, real Echo MCP mutation, live activity wire, and Stop");
+  await cdp("Page.navigate", { url: `${base}/examples/` });
+  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelectorAll('section[aria-labelledby=\"planned-title\"] article').length === 14");
+  const examplesResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 2");
+  if (!examplesResponsive) throw new Error("examples_mobile_overflow");
+  console.log("PASS: Svelte SSR, hydration, responsive home and examples, real Echo MCP mutation, live activity wire, and Stop");
 } finally {
   socket.close();
   chrome.kill();
