@@ -13,9 +13,10 @@ function validBrowserOrigin(value: string | null): value is string {
   }
 }
 
+const codemodeExtensionOrigin = "chrome-extension://gfocepglcakilpfjchiifidjefidepef";
+
 function validRequesterOrigin(value: string | null): value is string {
-  if (validBrowserOrigin(value)) return true;
-  return typeof value === "string" && /^chrome-extension:\/\/[a-p]{32}$/.test(value);
+  return validBrowserOrigin(value) || value === codemodeExtensionOrigin;
 }
 
 function corsHeaders(origin: string): HeadersInit {
@@ -46,7 +47,7 @@ export async function handleSessionCreate(request: Request, env: Env): Promise<R
   const requestOrigin = request.headers.get("origin");
   const codemode = body.mode === "codemode";
   if (codemode) {
-    if (!requestOrigin?.match(/^chrome-extension:\/\/[a-p]{32}$/)) return Response.json({ error: "extension_origin_required" }, { status: 403 });
+    if (requestOrigin !== codemodeExtensionOrigin) return Response.json({ error: "extension_origin_required" }, { status: 403 });
   } else if (!validBrowserOrigin(requestOrigin) || requestOrigin !== body.origin) {
     return Response.json({ error: "request_origin_mismatch" }, { status: 403 });
   }

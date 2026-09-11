@@ -57,7 +57,7 @@ describe("page session grants", () => {
   });
 
   test("allows only the full page grant from a Chrome extension origin", async () => {
-    const extensionOrigin = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
+    const extensionOrigin = "chrome-extension://gfocepglcakilpfjchiifidjefidepef";
     const codemode = request(extensionOrigin, "https://notes.example", [{ name: "page.evaluate", effect: "mutation" }], "codemode", "echo-codemode");
     const response = await handleSessionCreate(codemode, env);
     expect(response.status).toBe(200);
@@ -67,6 +67,7 @@ describe("page session grants", () => {
     expect(page?.origin).toBe("https://notes.example");
     expect(page?.grants).toEqual([{ name: "page.evaluate", effect: "mutation" }]);
     expect((await handleSessionCreate(request("https://notes.example", "https://notes.example", [{ name: "page.evaluate", effect: "mutation" }], "codemode", "echo-codemode"), env)).status).toBe(403);
+    expect((await handleSessionCreate(request("chrome-extension://abcdefghijklmnopabcdefghijklmnop", "https://notes.example", [{ name: "page.evaluate", effect: "mutation" }], "codemode", "echo-codemode"), env)).status).toBe(403);
     expect((await handleSessionCreate(request(extensionOrigin, "https://notes.example", [{ name: "readState", effect: "read" }], "codemode", "echo-codemode"), env)).status).toBe(400);
   });
 
