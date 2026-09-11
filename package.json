@@ -1,20 +1,25 @@
 {
-  "name": "echo",
+  "name": "@acoyfellow/echo",
   "version": "0.0.1",
   "private": true,
+  "exports": {
+    ".": "./client/index.ts"
+  },
   "description": "Give an agent explicit, revocable access to one live browser tab.",
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "bun run build:demo && wrangler dev --port 8870 --inspector-port 0",
+    "dev": "wrangler dev --port 8870 --inspector-port 0",
     "dev:fresh": "pkill -f 'wrangler dev' 2>/dev/null; pkill workerd 2>/dev/null; sleep 1; wrangler dev --port 8870 --inspector-port 0",
     "deploy": "bun scripts/deploy-production.ts",
-    "build:demo": "bun scripts/build-demo.ts",
+    "build:site": "bun build.mjs",
+    "build:demo": "bun run build:site",
     "build:extension": "bun scripts/build-extension.ts",
-    "typecheck": "tsc -p tsconfig.worker.json --pretty false && tsc -p tsconfig.client.json --pretty false && tsc -p tsconfig.extension.json --pretty false && tsc -p tsconfig.scripts.json --pretty false && tsc -p tsconfig.tests.json --pretty false",
+    "typecheck": "bun run build:site && svelte-check --tsconfig ./tsconfig.svelte.json && tsc -p tsconfig.worker.json --pretty false && tsc -p tsconfig.client.json --pretty false && tsc -p tsconfig.extension.json --pretty false && tsc -p tsconfig.scripts.json --pretty false && tsc -p tsconfig.tests.json --pretty false",
     "test": "bun test",
     "e2e:chrome": "bun e2e/chrome.ts",
     "e2e:safari": "bun e2e/safari.ts",
+    "e2e:site": "bun scripts/check-site-e2e.ts",
     "e2e:codemode": "bun e2e/codemode.ts",
     "e2e:codemode:check": "bun scripts/check-codemode-e2e.ts",
     "verify:codemode": "bun scripts/verify-codemode.ts",
@@ -26,12 +31,20 @@
     "setup:secret": "openssl rand -base64 48 | wrangler secret put ECHO_SIGNING_SECRET"
   },
   "dependencies": {
-    "agents": "0.13.3"
+    "agents": "0.13.3",
+    "hono": "^4.12.19",
+    "svelte": "^5.45.0",
+    "svelte-hono": "^0.1.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260527.1",
+    "@tailwindcss/cli": "^4.3.3",
     "@types/chrome": "0.1.42",
     "bun-types": "1.3.14",
+    "esbuild": "^0.25.10",
+    "esbuild-svelte": "^0.9.5",
+    "svelte-check": "^4.4.5",
+    "tailwindcss": "^4.3.3",
     "typescript": "6.0.3",
     "wrangler": "4.95.0"
   }

@@ -10,6 +10,9 @@ build/
 .DS_Store
 extension/dist/
 public/echo-demo.js
+public/site.css
+src/bundles.generated.ts
+generated/
 .pi/
 
 # local wrangler guardrail audit receipts (machine-specific, not part of echo)

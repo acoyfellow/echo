@@ -1,49 +1,71 @@
 import { routeAgentRequest } from "agents";
+import { Hono } from "hono";
+import { attachSvelteRoutes, svelteRenderer } from "svelte-hono";
 import { verifyCapability } from "./auth";
+import { bundles } from "../generated/bundles.generated";
 import { handleMcp } from "./mcp";
-import { renderFavicon, renderLanding, renderOg, renderRobots, renderSitemap } from "./site";
 import { handleSessionCreate, handleSessionPreflight } from "./sessions";
+import { renderFavicon, renderOg, renderRobots, renderSitemap } from "./site";
 import type { Env } from "./types";
+import Notes from "../examples/notes/App.svelte";
+import Todo from "../examples/todo/App.svelte";
+import Examples from "./ui/Examples.svelte";
+import Home from "./ui/Home.svelte";
 
 export { EchoAgent } from "./agent";
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const signingReady = typeof env.ECHO_SIGNING_SECRET === "string" && env.ECHO_SIGNING_SECRET.length >= 32 && !env.ECHO_SIGNING_SECRET.includes("generate-with");
-    if (url.pathname === "/health") {
-      return Response.json({
-        ok: signingReady,
-        version: "0.0.1",
-        mode: env.ECHO_HOSTED_INSTANCE === "dev" ? "dev" : "prod",
-        commit: env.ECHO_COMMIT_SHA ?? "local",
-      }, { status: signingReady ? 200 : 503 });
-    }
-    if (!signingReady && (url.pathname === "/sessions" || url.pathname === "/mcp" || url.pathname.startsWith("/agents/"))) {
-      return Response.json({ error: "signing_secret_unavailable" }, { status: 503 });
-    }
-    if (url.pathname === "/sessions" && request.method === "OPTIONS") return handleSessionPreflight(request);
-    if (url.pathname === "/sessions" && request.method === "POST") return handleSessionCreate(request, env);
-    if (url.pathname === "/mcp") return handleMcp(request, env);
-    if (url.pathname.startsWith("/agents/")) {
-      const token = url.searchParams.get("token");
-      const verified = token ? await verifyCapability(env.ECHO_SIGNING_SECRET, token, "page") : null;
-      if (!verified) return new Response("invalid_session", { status: 401 });
-      if (url.pathname !== `/agents/echo-agent/${verified.id}`) return new Response("session_id_mismatch", { status: 401 });
-      const claimedOrigin = url.searchParams.get("origin");
-      if (claimedOrigin && claimedOrigin !== verified.origin) return new Response("origin_mismatch", { status: 401 });
-      url.searchParams.set("origin", verified.origin);
-      url.searchParams.set("appId", verified.appId);
-      url.searchParams.set("grants", JSON.stringify(verified.grants));
-      url.searchParams.set("expiresAt", String(verified.expiresAt));
-      const response = await routeAgentRequest(new Request(url.toString(), request), env);
-      return response ?? new Response("agent_route_failed", { status: 404 });
-    }
-    if (url.pathname === "/") return renderLanding();
-    if (url.pathname === "/favicon.svg" || url.pathname === "/favicon.ico") return renderFavicon();
-    if (url.pathname === "/og.svg") return renderOg();
-    if (url.pathname === "/robots.txt") return renderRobots();
-    if (url.pathname === "/sitemap.xml") return renderSitemap();
-    return env.ASSETS.fetch(request);
-  },
-} satisfies ExportedHandler<Env>;
+const app = new Hono<{ Bindings: Env }>({ strict: false });
+attachSvelteRoutes(app as unknown as Hono, { bundles });
+
+const head = (path: string) => `<link rel="stylesheet" href="/site.css"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta property="og:url" content="https://echo.coey.dev${path}"><meta name="twitter:card" content="summary_large_image">`;
+
+app.get("/", svelteRenderer(Home, { hydrateAs: "home", title: "Echo — wire an agent into your web app", head: head("/"), props: {} }));
+app.get("/examples", svelteRenderer(Examples, { hydrateAs: "examples", title: "Echo examples — little apps for agents", head: head("/examples/"), props: {} }));
+app.get("/examples/todo", svelteRenderer(Todo, { hydrateAs: "todo", title: "Tiny Todo — Echo example", head: head("/examples/todo/"), props: {} }));
+app.get("/examples/notes", svelteRenderer(Notes, { hydrateAs: "notes", title: "Live Notes — Echo example", head: head("/examples/notes/"), props: {} }));
+app.get("/demo", svelteRenderer(Notes, { hydrateAs: "notes", title: "Live Notes — Echo example", head: head("/demo/"), props: {} }));
+
+app.get("/health", (context) => {
+  const env = context.env;
+  const ready = typeof env.ECHO_SIGNING_SECRET === "string" && env.ECHO_SIGNING_SECRET.length >= 32 && !env.ECHO_SIGNING_SECRET.includes("generate-with");
+  return context.json({ ok: ready, version: "0.0.1", mode: env.ECHO_HOSTED_INSTANCE === "dev" ? "dev" : "prod", commit: env.ECHO_COMMIT_SHA ?? "local" }, ready ? 200 : 503);
+});
+
+app.options("/sessions", (context) => handleSessionPreflight(context.req.raw));
+app.post("/sessions", (context) => {
+  const ready = typeof context.env.ECHO_SIGNING_SECRET === "string" && context.env.ECHO_SIGNING_SECRET.length >= 32 && !context.env.ECHO_SIGNING_SECRET.includes("generate-with");
+  if (!ready) return context.json({ error: "signing_secret_unavailable" }, 503);
+  return handleSessionCreate(context.req.raw, context.env);
+});
+app.all("/mcp", (context) => {
+  const ready = typeof context.env.ECHO_SIGNING_SECRET === "string" && context.env.ECHO_SIGNING_SECRET.length >= 32 && !context.env.ECHO_SIGNING_SECRET.includes("generate-with");
+  if (!ready) return context.json({ error: "signing_secret_unavailable" }, 503);
+  return handleMcp(context.req.raw, context.env);
+});
+app.all("/agents/*", async (context) => {
+  const env = context.env;
+  const ready = typeof env.ECHO_SIGNING_SECRET === "string" && env.ECHO_SIGNING_SECRET.length >= 32 && !env.ECHO_SIGNING_SECRET.includes("generate-with");
+  if (!ready) return context.json({ error: "signing_secret_unavailable" }, 503);
+  const url = new URL(context.req.url);
+  const token = url.searchParams.get("token");
+  const verified = token ? await verifyCapability(env.ECHO_SIGNING_SECRET, token, "page") : null;
+  if (!verified) return context.text("invalid_session", 401);
+  if (url.pathname !== `/agents/echo-agent/${verified.id}`) return context.text("session_id_mismatch", 401);
+  const claimedOrigin = url.searchParams.get("origin");
+  if (claimedOrigin && claimedOrigin !== verified.origin) return context.text("origin_mismatch", 401);
+  url.searchParams.set("origin", verified.origin);
+  url.searchParams.set("appId", verified.appId);
+  url.searchParams.set("grants", JSON.stringify(verified.grants));
+  url.searchParams.set("expiresAt", String(verified.expiresAt));
+  const response = await routeAgentRequest(new Request(url.toString(), context.req.raw), env);
+  return response ?? context.text("agent_route_failed", 404);
+});
+
+app.get("/favicon.svg", () => renderFavicon());
+app.get("/favicon.ico", () => renderFavicon());
+app.get("/og.svg", () => renderOg());
+app.get("/robots.txt", () => renderRobots());
+app.get("/sitemap.xml", () => renderSitemap());
+app.all("*", (context) => context.env.ASSETS.fetch(context.req.raw));
+
+export default app;

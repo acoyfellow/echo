@@ -1,10 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "echo",
-  "main": "src/index.ts",
+  "main": "build/worker.bundled.mjs",
   "compatibility_date": "2026-04-17",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
+  "build": { "command": "bun run build:site" },
   "routes": [
     { "pattern": "echo.coey.dev", "custom_domain": true }
   ],

@@ -8,7 +8,7 @@ The app-defined mode does not need a browser extension. Full-page Codemode uses 
 
 > Status: `0.0.1`, public experiment at [echo.coey.dev](https://echo.coey.dev).
 
-## Try the local demo
+## Try the local examples
 
 ```sh
 bun install
@@ -16,15 +16,15 @@ cp .dev.vars.example .dev.vars
 bun run dev
 ```
 
-Open `http://127.0.0.1:8870/demo/`.
+Open `http://127.0.0.1:8870/`. The homepage is a live Svelte workbench with source on one side and the hydrated Todo example on the other.
 
-The demo exposes three capabilities:
+Playable examples:
 
-- `readState` reads the demo title and draft.
-- `setDraft` changes the draft.
-- `uncertainMutation` tests a disconnect after an effect and before its result.
+- `/examples/todo/` exposes list, add, complete, and delete capabilities.
+- `/examples/notes/` exposes read, draft update, and uncertainty-test capabilities.
+- `/examples/` holds the complete arcade and fourteen planned examples.
 
-The page does not expose Connect or Stop as capabilities. A person must press those buttons.
+Connect and Stop stay inside each example. They are never exposed as agent capabilities.
 
 ## Try full-page Codemode
 
@@ -42,8 +42,14 @@ Stopping cannot undo changes or listeners that already ran. A page or debugger e
 
 ## Add Echo to an app
 
+Install directly from GitHub:
+
+```sh
+npm install github:acoyfellow/echo
+```
+
 ```ts
-import { createEcho } from './client';
+import { createEcho } from '@acoyfellow/echo';
 
 const echo = createEcho({
   workerBase: 'https://your-echo-worker.example',
@@ -138,9 +144,9 @@ App-defined browser evidence lives under `receipts/extension-free/`. Full-page C
 
 ```text
 client/       in-page Echo client
+examples/     hydrated Svelte example apps and catalog
 extension/    trusted Chrome Codemode companion
-demo/         disposable demo app
-src/          Worker, MCP, credentials, and Durable Object
+src/          Hono Worker, Svelte UI, MCP, credentials, and Durable Object
 e2e/          independent browser referees
 receipts/     redacted browser evidence
 ```
@@ -150,7 +156,7 @@ receipts/     redacted browser evidence
 ```sh
 bun run typecheck
 bun test
-bun run build:demo
+bun run build:site
 ```
 
 ## License

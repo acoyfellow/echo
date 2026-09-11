@@ -11,5 +11,5 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["client/**/*.ts", "demo/**/*.ts"]
+  "include": ["client/**/*.ts", "examples/**/*.ts"]
 }
