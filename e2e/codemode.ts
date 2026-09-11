@@ -177,6 +177,7 @@ try {
     await Bun.sleep(100);
   }
   if (!approval.active || !approval.mcpUrl) throw new Error("codemode_approval_failed");
+  await approvedPage.evaluate("window.__echoPrivateState={customer:'private-state'};true");
 
   const execution = await mcpCall(
     approval.mcpUrl,
