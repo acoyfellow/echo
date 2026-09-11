@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "495f69852ee29141fb1c85cca0bd28ac61e2d19e",
+  "sourceCommit": "3527b37115bd3fafaf4254ffe28a7569f84f8af2",
   "status": "passed",
   "claim": "Echo Codemode grants full JavaScript authority to one explicitly approved Chrome tab and revokes it from trusted extension UI.",
   "environment": {
@@ -61,15 +61,15 @@
   "screenshots": [
     {
       "file": "approval.png",
-      "sha256": "918e2879b80922b6c255295f4a9c99161e18d053d6586a8ac8c92c28f2b84f75"
+      "sha256": "8069a83d71cc1673fc603023a9edf29a3412de832d03b22fa824b143925c21f0"
     },
     {
       "file": "executed.png",
-      "sha256": "98a0af7a9c65ebfefeb6be84ae618c243a888dec9af8a105a075ade071605df4"
+      "sha256": "bce456e4f40d0912955f5951036f7b267d9a60fca6bfd82b510a96acf24fef8b"
     },
     {
       "file": "final.png",
-      "sha256": "5bdba3ab86c6f7fd80c4d89b165777b5c11d229d5f2ff87d9d81ce0b9af74e62"
+      "sha256": "c83e0d37ec96b9086b3e6388f27aeeb915fd9b410de61f3bce9ca0825cb1f5ef"
     }
   ],
   "independentEvidence": [
