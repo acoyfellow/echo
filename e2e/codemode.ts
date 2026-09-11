@@ -33,7 +33,7 @@ let worker: ReturnType<typeof Bun.spawn> | null = null;
 let health = await fetch(`${base}/health`).catch(() => null);
 if (!health?.ok) {
   worker = Bun.spawn(["bun", "run", "dev"], { cwd: new URL("..", import.meta.url).pathname, stdout: "ignore", stderr: "ignore" });
-  for (let attempt = 0; attempt < 150; attempt += 1) {
+  for (let attempt = 0; attempt < 600; attempt += 1) {
     await Bun.sleep(100);
     health = await fetch(`${base}/health`).catch(() => null);
     if (health?.ok) break;

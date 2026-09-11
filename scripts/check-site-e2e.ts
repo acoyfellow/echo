@@ -5,7 +5,7 @@ const appOrigin = `http://127.0.0.1:${port}`;
 const worker = Bun.spawn(["bunx", "wrangler", "dev", "--port", String(port), "--inspector-port", "0"], { stdout: "ignore", stderr: "ignore" });
 try {
   let ready = false;
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  for (let attempt = 0; attempt < 600; attempt += 1) {
     const response = await fetch(`${appOrigin}/health`).catch(() => null);
     if (response?.ok) {
       ready = true;
