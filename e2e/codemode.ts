@@ -1,9 +1,23 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 const base = process.env.ECHO_E2E_ORIGIN ?? "http://127.0.0.1:8870";
-const binary = process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const playwrightCache = join(homedir(), "Library", "Caches", "ms-playwright");
+const cachedVersions = await readdir(playwrightCache).catch(() => []);
+const testingCandidates = cachedVersions
+  .filter((name) => name.startsWith("chromium-"))
+  .sort()
+  .reverse()
+  .map((name) => join(playwrightCache, name, "chrome-mac-arm64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"));
+let testingBinary = "";
+for (const candidate of testingCandidates) {
+  if (await Bun.file(candidate).exists()) {
+    testingBinary = candidate;
+    break;
+  }
+}
+const binary = process.env.CHROME_PATH || testingBinary || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const extension = new URL("../extension", import.meta.url).pathname;
 const manifest = await Bun.file(new URL("../extension/manifest.json", import.meta.url)).json() as { key: string };
 const publicKey = Uint8Array.from(atob(manifest.key), (value) => value.charCodeAt(0));
