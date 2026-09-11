@@ -31,6 +31,7 @@
   to { transform: translateX(-42%); }
 }
 
+.code-lines > span { white-space: pre; }
 .wire-packet-active { animation: wire-packet .85s ease-in-out infinite; }
 .arcade-drift { animation: arcade-drift 48s linear infinite; }
 .arcade-drift:hover { animation-play-state: paused; }

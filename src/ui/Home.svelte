@@ -60,7 +60,7 @@
     <div class="relative z-[2] mx-auto grid w-full max-w-[1400px] grid-cols-1 items-stretch lg:grid-cols-[minmax(0,1fr)_78px_minmax(0,.9fr)]">
       <article class="min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-[#0b1016]/95 shadow-2xl lg:rounded-r-none lg:[transform:perspective(1200px)_rotateY(1.4deg)] lg:[transform-origin:right]">
         <div class="flex h-11 items-center justify-between border-b border-white/15 px-4 font-mono text-[11px] tracking-[.06em] text-muted"><span>YOUR CODE · todo.ts</span><b class="text-signal">● READY</b></div>
-        <div class="m-0 max-h-[510px] min-h-[500px] overflow-auto whitespace-pre p-5 font-mono text-[clamp(12px,1.2vw,15px)] leading-[1.8] text-[#d8e5ee] lg:p-9"><span class="block"><span class="text-[#cb8cff]">import</span> &#123; <span class="text-[#82b9ff]">createEcho</span> &#125; <span class="text-[#cb8cff]">from</span> <span class="text-[#b9ef9a]">'@acoyfellow/echo'</span>;</span>
+        <div class="code-lines m-0 h-[550px] overflow-hidden p-6 font-mono text-[clamp(11px,1vw,14px)] leading-[1.7] text-[#d8e5ee] lg:p-8"><span class="block"><span class="text-[#cb8cff]">import</span> &#123; <span class="text-[#82b9ff]">createEcho</span> &#125; <span class="text-[#cb8cff]">from</span> <span class="text-[#b9ef9a]">'@acoyfellow/echo'</span>;</span>
 <span class="block"> </span>
 <span class="block"><span class="text-[#cb8cff]">const</span> echo = <span class="text-[#82b9ff]">createEcho</span>(&#123;</span>
 <span class="block">  <span class="text-amber">appId</span>: <span class="text-[#b9ef9a]">'tiny-todo'</span>,</span>
