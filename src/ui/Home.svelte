@@ -36,6 +36,15 @@
   });
 </script>
 
+{#snippet mark(kind: "yes" | "no" | "varies", label: string)}
+  <span class="inline-flex items-center gap-2 font-medium" class:text-signal={kind === "yes"} class:text-danger={kind === "no"} class:text-amber={kind === "varies"}>
+    {#if kind === "yes"}<svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    {:else if kind === "no"}<svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    {:else}<svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>{/if}
+    <span class="text-paper">{label}</span>
+  </span>
+{/snippet}
+
 <svelte:head>
   <meta name="description" content="Turn functions in your web app into tools for one user-approved agent session." />
   <meta property="og:title" content="Echo — wire an agent into your web app" />
@@ -47,14 +56,14 @@
 <main>
   <section class="relative min-h-svh bg-[radial-gradient(circle_at_50%_0,rgba(255,122,24,.14),transparent_35rem),linear-gradient(rgba(118,199,240,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(118,199,240,.025)_1px,transparent_1px)] bg-[size:auto,28px_28px,28px_28px] p-4 lg:p-5">
     <nav class="relative z-10 mx-auto flex h-14 max-w-[1400px] items-center justify-between">
-      <a class="text-xl font-black tracking-[-.05em] text-paper no-underline" href="/">echo</a>
+      <a class="text-xl font-semibold tracking-[-.03em] text-paper no-underline" href="/">echo</a>
       <div class="flex gap-5 text-xs text-muted"><a href="/examples/">the arcade</a><a href="https://github.com/acoyfellow/echo">source</a></div>
     </nav>
 
     <header class="relative z-10 mx-auto mb-8 mt-7 max-w-[1160px]">
-      <p class="font-mono text-[11px] font-bold uppercase tracking-[.18em] text-amber">The casing is off</p>
-      <h1 class="my-4 max-w-[1000px] text-[clamp(3rem,7vw,5.9rem)] font-black leading-[.91] tracking-[-.068em]">Your app already knows what to do. <span class="text-echo">Give those functions to an agent.</span></h1>
-      <p class="max-w-2xl text-[clamp(1.05rem,2vw,1.35rem)] text-muted">One live tab. Only the functions you name. Watch a real agent call travel from your code into the app.</p>
+      <p class="text-sm font-medium text-amber">The casing is off</p>
+      <h1 class="my-4 max-w-[1000px] text-[clamp(3rem,7vw,5.9rem)] font-semibold leading-[.96] tracking-[-.045em]">Your app already knows what to do. <span class="text-echo">Give those functions to an agent.</span></h1>
+      <p class="max-w-2xl text-[clamp(1.05rem,2vw,1.35rem)] leading-[1.55] text-muted">One live tab. Only the functions you name. Watch a real agent call travel from your code into the app.</p>
     </header>
 
     <div class="relative z-[2] mx-auto grid w-full max-w-[1400px] grid-cols-1 items-stretch lg:grid-cols-[minmax(0,1fr)_78px_minmax(0,.9fr)]">
@@ -92,33 +101,33 @@
     <div class="relative z-10 mx-auto mt-5 grid max-w-[1160px] gap-4 rounded-lg border border-white/15 bg-[#080c11] px-4 py-3 font-mono text-[11px] text-muted md:grid-cols-[1fr_auto]"><div><strong class:text-danger={receipt.startsWith('SESSION')} class="text-signal">{receipt.split(' · ')[0]}</strong>{receipt.includes(' · ') ? ` · ${receipt.split(' · ').slice(1).join(' · ')}` : ''}</div><div class="text-danger">STOP LIVES INSIDE THE APP</div></div>
   </section>
 
-  <section class="grid min-h-[72svh] place-items-center bg-[radial-gradient(circle,rgba(255,122,24,.12),transparent_33rem)] px-5 py-24 text-center"><div><p class="font-mono text-[11px] font-bold uppercase tracking-[.18em] text-amber">No second act</p><h2 class="m-0 max-w-[950px] text-[clamp(3.1rem,9vw,7.5rem)] font-black leading-[.88] tracking-[-.078em]">That was the whole product.</h2><p class="mx-auto mt-7 max-w-xl text-xl text-muted">A function in your app became a tool in your agent. Its result appeared in the same tab. The app kept the Stop button.</p><pre class="mx-auto mt-8 w-fit rounded-lg border border-white/15 bg-[#080c11] px-6 py-4 text-left font-mono text-signal"><code>npm i github:acoyfellow/echo</code></pre><a class="mt-5 inline-block text-echo" href="https://github.com/acoyfellow/echo#add-echo-to-an-app">See the complete integration →</a></div></section>
+  <section class="grid min-h-[72svh] place-items-center bg-[radial-gradient(circle,rgba(255,122,24,.12),transparent_33rem)] px-5 py-24 text-center"><div><p class="text-sm font-medium text-amber">No second act</p><h2 class="m-0 max-w-[950px] text-[clamp(3.1rem,9vw,7.5rem)] font-semibold leading-[.94] tracking-[-.05em]">That was the whole product.</h2><p class="mx-auto mt-7 max-w-xl text-xl leading-8 text-muted">A function in your app became a tool in your agent. Its result appeared in the same tab. The app kept the Stop button.</p><pre class="mx-auto mt-8 w-fit rounded-lg border border-white/15 bg-[#080c11] px-6 py-4 text-left font-mono text-signal"><code>npm i github:acoyfellow/echo</code></pre><a class="mt-5 inline-block text-echo" href="https://github.com/acoyfellow/echo#add-echo-to-an-app">See the complete integration →</a></div></section>
 
   <section class="border-y border-white/15 bg-[#0c1118] px-5 py-24">
-    <header class="mx-auto mb-10 max-w-[1160px]"><p class="font-mono text-[11px] font-bold uppercase tracking-[.18em] text-amber">Choose the authority</p><h2 class="my-3 max-w-4xl text-[clamp(2.7rem,6vw,5rem)] font-black leading-[.94] tracking-[-.06em]">Not every browser tool is the same deal.</h2><p class="max-w-3xl text-lg text-muted">These models overlap, but they grant very different power. This compares control boundaries—not benchmark scores or every implementation carrying the label.</p></header>
-    <div class="mx-auto max-w-[1160px] overflow-x-auto rounded-2xl border border-white/15 bg-[#080c11] shadow-2xl">
-      <table class="w-full min-w-[850px] border-collapse text-left text-sm">
+    <header class="mx-auto mb-10 max-w-[1160px]"><p class="text-sm font-medium text-amber">Choose the authority</p><h2 class="my-3 max-w-4xl text-[clamp(2.7rem,6vw,5rem)] font-semibold leading-[1] tracking-[-.04em]">Not every browser tool is the same deal.</h2><p class="max-w-3xl text-lg leading-7 text-muted">The important difference is how much power the agent gets.</p></header>
+    <div class="mx-auto max-w-[1160px] overflow-x-auto border-y border-white/15 bg-[#080c11]">
+      <table class="w-full min-w-[820px] border-collapse text-left text-sm">
         <caption class="sr-only">Comparison of Echo app tools, Echo Codemode, WebMCP, and external browser automation</caption>
-        <thead><tr class="border-b border-white/15 font-mono text-[11px] uppercase tracking-[.08em] text-muted"><th class="sticky left-0 z-10 bg-[#080c11] p-5">Question</th><th class="p-5 text-signal">Echo app tools</th><th class="p-5 text-echo">Echo Codemode</th><th class="p-5">WebMCP</th><th class="p-5">Browser automation</th></tr></thead>
-        <tbody class="[&_td]:border-t [&_td]:border-white/10 [&_td]:p-5 [&_td]:align-top [&_th]:border-t [&_th]:border-white/10 [&_th]:p-5 [&_th]:align-top">
-          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-mono text-xs text-muted">What gets exposed?</th><td>Only functions the app names</td><td>The approved page’s full JavaScript authority</td><td>Tools declared through the browser API</td><td>Browser, DOM, or visual controls offered by the automation server</td></tr>
-          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-mono text-xs text-muted">App changes?</th><td>Yes · register capabilities</td><td>No app integration required</td><td>Yes · expose tools through WebMCP</td><td>Usually no</td></tr>
-          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-mono text-xs text-muted">Where does authority live?</th><td>Signed app origin and capability grant</td><td>One approved tab and origin</td><td>Inside the supporting browser’s page context</td><td>In the configured browser session or context</td></tr>
-          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-mono text-xs text-muted">Human Stop?</th><td>App-owned Stop closes the Echo session</td><td>Trusted companion UI revokes execution</td><td>Implementation-dependent</td><td>Runner-dependent</td></tr>
-          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-mono text-xs text-muted">Availability</th><td>Tested here in Chrome, Safari, and WebKit</td><td>Chromium companion today</td><td>Emerging; depends on browser support</td><td>Available today; support varies by tool</td></tr>
-          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-mono text-xs text-muted">Best when</th><td>The app can offer narrow, semantic actions</td><td>You intentionally need broad in-page power</td><td>Your target browser and app both support the API</td><td>You need outside-in control of sites you do not own</td></tr>
+        <thead><tr class="border-b border-white/15 text-sm text-muted"><th class="sticky left-0 z-10 bg-[#080c11] p-5 font-medium">Capability</th><th class="p-5 font-semibold text-signal">Echo app tools</th><th class="p-5 font-semibold text-echo">Echo Codemode</th><th class="p-5 font-semibold text-paper">WebMCP</th><th class="p-5 font-semibold text-paper">Browser automation</th></tr></thead>
+        <tbody class="[&_td]:border-t [&_td]:border-white/10 [&_td]:p-5 [&_th]:border-t [&_th]:border-white/10 [&_th]:p-5">
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Narrow named tools</th><td>{@render mark('yes', 'Yes')}</td><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Yes')}</td><td>{@render mark('no', 'No')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">No app integration</th><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Yes')}</td><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Usually')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Broad page control</th><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Yes')}</td><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Usually')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Human revocation</th><td>{@render mark('yes', 'App Stop')}</td><td>{@render mark('yes', 'Trusted Stop')}</td><td>{@render mark('varies', 'Varies')}</td><td>{@render mark('varies', 'Varies')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Cross-browser proof here</th><td>{@render mark('yes', '3 receipts')}</td><td>{@render mark('no', 'Chromium')}</td><td>{@render mark('no', 'Emerging')}</td><td>{@render mark('varies', 'Varies')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Sites you do not own</th><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Approved tab')}</td><td>{@render mark('no', 'No')}</td><td>{@render mark('yes', 'Yes')}</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="mx-auto mt-4 max-w-[1160px] font-mono text-[11px] leading-5 text-muted">“Browser automation” is a category, not one product. WebMCP behavior and availability may change as implementations mature. Echo’s browser claims are limited to the receipts in this repository.</p>
+    <p class="mx-auto mt-4 max-w-[1160px] text-sm leading-6 text-muted">Checks describe the control model, not overall quality. WebMCP and automation support varies by implementation. Echo claims are limited to this repository’s receipts.</p>
   </section>
 
-  <section class="overflow-hidden border-t border-white/15 bg-[#090d12] py-24"><header class="mx-auto mb-10 w-[calc(100%_-_40px)] max-w-[1160px]"><p class="font-mono text-[11px] font-bold uppercase tracking-[.18em] text-amber">Insert tokens</p><h2 class="my-3 max-w-4xl text-[clamp(2.8rem,7vw,5.2rem)] font-black leading-[.94] tracking-[-.065em]">Little apps. Strange powers.</h2><p class="max-w-2xl text-lg text-muted">Two complete web apps are awake and ready for an agent. Fourteen stranger experiments are still dreaming.</p></header>
+  <section class="overflow-hidden border-t border-white/15 bg-[#090d12] py-24"><header class="mx-auto mb-10 w-[calc(100%_-_40px)] max-w-[1160px]"><p class="text-sm font-medium text-amber">Insert tokens</p><h2 class="my-3 max-w-4xl text-[clamp(2.8rem,7vw,5.2rem)] font-semibold leading-[1] tracking-[-.04em]">Little apps. Strange powers.</h2><p class="max-w-2xl text-lg leading-7 text-muted">Two complete web apps are awake and ready for an agent. Fourteen stranger experiments are still dreaming.</p></header>
     <div class="arcade-drift flex w-max gap-4 px-5 pb-9">
       {#each [...examples, ...examples.slice(0, 6)] as example}
         <svelte:element this={example.live ? 'a' : 'article'} href={example.live ? `/examples/${example.slug}/` : undefined} style={`--accent:${example.color}`} class:opacity-65={!example.live} class="flex h-[390px] w-[285px] flex-col rounded-[18px_18px_9px_9px] border border-[color-mix(in_srgb,var(--accent)_45%,rgba(180,205,225,.15))] bg-[linear-gradient(150deg,color-mix(in_srgb,var(--accent)_12%,transparent),transparent_45%),#111821] p-6 text-paper no-underline shadow-2xl transition hover:-translate-y-2">
           <span class="grid size-14 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-3xl text-[var(--accent)]">{example.emoji}</span>
-          <h3 class="mb-2 mt-6 text-2xl font-bold tracking-[-.04em]">{example.name}</h3><p class="m-0 text-sm text-muted">{example.description}</p>
+          <h3 class="mb-2 mt-6 text-2xl font-semibold tracking-[-.025em]">{example.name}</h3><p class="m-0 text-sm text-muted">{example.description}</p>
           <div class="mt-5 font-mono text-[10px] uppercase leading-7 text-[var(--accent)]">{example.tools.join(' · ')}</div><b class="mt-auto font-mono text-[11px] uppercase tracking-[.13em] text-[var(--accent)]">{example.live ? 'Insert tokens →' : 'Dreaming'}</b>
         </svelte:element>
       {/each}
