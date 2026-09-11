@@ -1,0 +1,21 @@
+proof/codemode-evidence.json
+  s_5b490267d93687::t_a60a4ebf5fb3a8 3-4,8,12,16
+receipts/codemode/chrome-local/receipt.json
+  s_5b490267d93687::t_e9a4d0c3465921 3,64,68,72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "97f13d24b143d9136af5807600a7b7aee1016eab",
+  "prompts": {},
+  "sessions": {
+    "s_5b490267d93687": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a085d5-ded7-7469-b95a-07364692d90f",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
