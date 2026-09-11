@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "495f69852ee29141fb1c85cca0bd28ac61e2d19e",
+  "receiptSha256": "bcca5a2dfbc245019b0026b4b5b1fb68eb173a16c9e8bfc8c16da20affc02e75",
+  "screenshots": [
+    {
+      "file": "approval.png",
+      "sha256": "918e2879b80922b6c255295f4a9c99161e18d053d6586a8ac8c92c28f2b84f75"
+    },
+    {
+      "file": "executed.png",
+      "sha256": "98a0af7a9c65ebfefeb6be84ae618c243a888dec9af8a105a075ade071605df4"
+    },
+    {
+      "file": "final.png",
+      "sha256": "5bdba3ab86c6f7fd80c4d89b165777b5c11d229d5f2ff87d9d81ce0b9af74e62"
+    }
+  ]
+}

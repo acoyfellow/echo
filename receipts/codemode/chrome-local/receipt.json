@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "a305ac39b6daa89a4e4fb288b5618a407f317294",
+  "sourceCommit": "495f69852ee29141fb1c85cca0bd28ac61e2d19e",
   "status": "passed",
   "claim": "Echo Codemode grants full JavaScript authority to one explicitly approved Chrome tab and revokes it from trusted extension UI.",
   "environment": {
@@ -58,11 +58,25 @@
       "reason": "expired"
     }
   },
+  "screenshots": [
+    {
+      "file": "approval.png",
+      "sha256": "918e2879b80922b6c255295f4a9c99161e18d053d6586a8ac8c92c28f2b84f75"
+    },
+    {
+      "file": "executed.png",
+      "sha256": "98a0af7a9c65ebfefeb6be84ae618c243a888dec9af8a105a075ade071605df4"
+    },
+    {
+      "file": "final.png",
+      "sha256": "5bdba3ab86c6f7fd80c4d89b165777b5c11d229d5f2ff87d9d81ce0b9af74e62"
+    }
+  ],
   "independentEvidence": [
     "Chrome DevTools Protocol referee clicked the approval UI and observed both approved and unapproved tabs",
-    "receipts/codemode/chrome-local/approval.png",
-    "receipts/codemode/chrome-local/executed.png",
-    "receipts/codemode/chrome-local/final.png"
+    "approval.png",
+    "executed.png",
+    "final.png"
   ],
   "redactions": [
     "MCP session credential",
