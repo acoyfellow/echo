@@ -69,6 +69,23 @@ async function waitFor(expression: string): Promise<void> {
   }
   throw new Error(`site_wait_failed:${expression}`);
 }
+async function verifyCodePanel(label: string) {
+  const valid = await evaluate<boolean>(`(() => {
+    const panel = document.querySelector('#hero-code');
+    const lines = [...panel.children];
+    const indented = lines.find((line) => line.textContent.startsWith('appId')); 
+    const spacers = lines.filter((line) => line.classList.contains('h-3'));
+    return panel.scrollHeight <= panel.clientHeight
+      && panel.scrollWidth <= panel.clientWidth
+      && !!indented
+      && getComputedStyle(indented).whiteSpace === 'pre'
+      && parseFloat(getComputedStyle(indented).paddingLeft) > 0
+      && spacers.length === 3
+      && spacers.every((spacer) => spacer.getBoundingClientRect().height > 0);
+  })()`);
+  if (!valid) throw new Error(`site_code_panel_overflow:${label}`);
+}
+
 async function tool(endpoint: string, id: number, name: string, input: unknown, operationId?: string) {
   const response = await fetch(endpoint, {
     method: "POST",
@@ -81,7 +98,9 @@ async function tool(endpoint: string, id: number, name: string, input: unknown, 
 try {
   await cdp("Runtime.enable");
   await cdp("Page.enable");
+  await cdp("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await waitFor("document.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')");
+  await verifyCodePanel("desktop");
   await waitFor("document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')?.contentDocument?.querySelector('#connect')");
   await evaluate("frames[0].document.querySelector('#connect').click(); true");
   await waitFor("frames[0].document.querySelector('#status')?.textContent === 'Agent connected'");
@@ -94,7 +113,8 @@ try {
   await waitFor(`frames[0].document.body.textContent.includes(${JSON.stringify(text)}) && document.body.textContent.includes('AGENT LINE OPEN')`);
   await waitFor("document.body.textContent.includes('ADDTODO · FINISHED · THIS CAME THROUGH ECHO')");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth && document.querySelector('#hero-code').scrollHeight <= document.querySelector('#hero-code').clientHeight");
+  await verifyCodePanel("mobile");
+  const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth");
   if (!responsive) throw new Error("site_mobile_overflow");
   await evaluate("frames[0].document.querySelector('#stop').click(); true");
   await waitFor("document.body.textContent.includes('SESSION CLOSED · the wire is cut')");

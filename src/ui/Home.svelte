@@ -63,15 +63,15 @@
         <div id="hero-code" class="code-lines m-0 h-[550px] overflow-hidden p-6 font-mono text-[clamp(11px,1vw,14px)] leading-[1.7] text-[#d8e5ee] lg:p-8"><span class="block"><span class="text-[#cb8cff]">import</span> &#123; <span class="text-[#82b9ff]">createEcho</span> &#125; <span class="text-[#cb8cff]">from</span> <span class="text-[#b9ef9a]">'@acoyfellow/echo'</span>;</span>
 <span class="block h-3" aria-hidden="true"></span>
 <span class="block"><span class="text-[#cb8cff]">const</span> echo = <span class="text-[#82b9ff]">createEcho</span>(&#123;</span>
-<span class="block">  <span class="text-amber">appId</span>: <span class="text-[#b9ef9a]">'tiny-todo'</span>,</span>
-<span class="block">  <span class="text-amber">workerBase</span>: location.origin,</span>
+<span class="block pl-[2ch]"><span class="text-amber">appId</span>: <span class="text-[#b9ef9a]">'tiny-todo'</span>,</span>
+<span class="block pl-[2ch]"><span class="text-amber">workerBase</span>: location.origin,</span>
 <span class="block">&#125;);</span>
 <span class="block h-3" aria-hidden="true"></span>
 <span class="block">echo.<span class="text-[#82b9ff]">register</span>(&#123;</span>
-<span class={`-mx-2 block border-l-2 px-2 transition ${activeTool === 'listTodos' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">  listTodos</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'read'</span>, … &#125;,</span>
-<span class={`-mx-2 block border-l-2 px-2 transition ${activeTool === 'addTodo' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">  addTodo</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
-<span class={`-mx-2 block border-l-2 px-2 transition ${activeTool === 'setCompleted' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">  setCompleted</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
-<span class={`-mx-2 block border-l-2 px-2 transition ${activeTool === 'deleteTodo' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">  deleteTodo</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'listTodos' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">listTodos</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'read'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'addTodo' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">addTodo</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'setCompleted' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">setCompleted</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'deleteTodo' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">deleteTodo</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
 <span class="block">&#125;);</span>
 <span class="block h-3" aria-hidden="true"></span>
 <span class="block">connectButton.onclick = () =&gt; echo.<span class="text-[#82b9ff]">connect</span>();</span></div>
