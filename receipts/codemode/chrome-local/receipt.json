@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "sourceCommit": "4d978dd8caff0790eacf4054bd1b4028c4aaf32d",
   "status": "passed",
   "claim": "Echo Codemode grants full JavaScript authority to one explicitly approved Chrome tab and revokes it from trusted extension UI.",
   "environment": {
@@ -9,6 +10,7 @@
   },
   "authority": {
     "mode": "page.javascript.full",
+    "extensionId": "gfocepglcakilpfjchiifidjefidepef",
     "durationMinutes": 10,
     "exactTab": true,
     "exactOrigin": true,
