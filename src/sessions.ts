@@ -1,4 +1,5 @@
 import { mintSessionCapabilities, type CapabilityGrant } from "./auth";
+import { codemodeExtensionOrigin } from "./codemode";
 import { readBoundedBody } from "./body";
 import type { Env } from "./types";
 
@@ -12,8 +13,6 @@ function validBrowserOrigin(value: string | null): value is string {
     return false;
   }
 }
-
-const codemodeExtensionOrigin = "chrome-extension://gfocepglcakilpfjchiifidjefidepef";
 
 function validRequesterOrigin(value: string | null): value is string {
   return validBrowserOrigin(value) || value === codemodeExtensionOrigin;

@@ -258,12 +258,14 @@ try {
 
   const screenshot = await approvedPage.call("Page.captureScreenshot", { format: "png" }) as { data: string };
   await writeFile(join(output, "final.png"), Buffer.from(screenshot.data, "base64"));
+  const sourceCommit = (await Bun.$`git rev-parse HEAD`.text()).trim();
   const receipt = {
     schemaVersion: 1,
+    sourceCommit,
     status: passed ? "passed" : "failed",
     claim: "Echo Codemode grants full JavaScript authority to one explicitly approved Chrome tab and revokes it from trusted extension UI.",
     environment: { browser: version.Browser, userAgent: version["User-Agent"], origin: base },
-    authority: { mode: "page.javascript.full", durationMinutes: 10, exactTab: true, exactOrigin: true, trustedStop: "Chrome extension service worker" },
+    authority: { mode: "page.javascript.full", extensionId, durationMinutes: 10, exactTab: true, exactOrigin: true, trustedStop: "Chrome extension service worker" },
     observations: {
       beforeApproval: { active: beforeApproval.active ?? false },
       execution: { ok: execution.ok, readPrivateState: executionResult?.secret === "private-state", readStorage: executionResult?.storage === "stored" },

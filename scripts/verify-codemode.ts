@@ -1,4 +1,5 @@
-export {};
+import { $ } from "bun";
+import { codemodeExtensionOrigin } from "../src/codemode";
 
 const failures: string[] = [];
 const receiptFile = Bun.file("receipts/codemode/chrome-local/receipt.json");
@@ -7,8 +8,9 @@ else {
   const text = await receiptFile.text();
   const receipt = JSON.parse(text) as {
     status?: string;
+    sourceCommit?: string;
     environment?: { browser?: string; origin?: string };
-    authority?: { mode?: string; exactTab?: boolean; exactOrigin?: boolean; trustedStop?: string };
+    authority?: { mode?: string; extensionId?: string; exactTab?: boolean; exactOrigin?: boolean; trustedStop?: string };
     observations?: {
       beforeApproval?: { active?: boolean };
       execution?: { ok?: boolean; readPrivateState?: boolean; readStorage?: boolean };
@@ -25,7 +27,19 @@ else {
     independentEvidence?: string[];
   };
   if (receipt.status !== "passed" || !receipt.environment?.browser?.startsWith("Chrome/")) failures.push("Codemode did not pass in named Chrome");
+  if (!receipt.sourceCommit || receipt.sourceCommit.length !== 40) failures.push("Codemode receipt is not bound to source");
+  else {
+    const head = (await $`git rev-parse HEAD`.text()).trim();
+    const ancestor = await $`git merge-base --is-ancestor ${receipt.sourceCommit} ${head}`.quiet().nothrow();
+    if (ancestor.exitCode !== 0) failures.push("Codemode receipt source is not an ancestor of HEAD");
+    else {
+      const changed = (await $`git diff --name-only ${receipt.sourceCommit}..${head}`.text()).trim().split("\n").filter(Boolean);
+      const unreviewed = changed.filter((path) => !path.startsWith("receipts/codemode/") && !path.startsWith("receipts/reviews/"));
+      if (unreviewed.length) failures.push(`Codemode source changed after browser proof: ${unreviewed.join(", ")}`);
+    }
+  }
   if (receipt.authority?.mode !== "page.javascript.full" || !receipt.authority.exactTab || !receipt.authority.exactOrigin || receipt.authority.trustedStop !== "Chrome extension service worker") failures.push("Codemode authority boundary is incomplete");
+  if (`chrome-extension://${receipt.authority?.extensionId ?? ""}` !== codemodeExtensionOrigin) failures.push("Codemode receipt used a different extension identity");
   const observations = receipt.observations;
   if (observations?.beforeApproval?.active !== false) failures.push("Codemode was active before approval");
   if (!observations?.execution?.ok || !observations.execution.readPrivateState || !observations.execution.readStorage) failures.push("full page JavaScript execution was not independently observed");
@@ -44,6 +58,14 @@ else {
 for (const path of ["receipts/codemode/chrome-local/approval.png", "receipts/codemode/chrome-local/executed.png", "receipts/codemode/chrome-local/final.png"]) {
   const screenshot = Bun.file(path);
   if (!await screenshot.exists() || screenshot.size < 10_000) failures.push(`Codemode screenshot is missing or empty: ${path}`);
+}
+const manifest = await Bun.file("extension/manifest.json").json() as { key?: string };
+if (!manifest.key) failures.push("Codemode manifest identity is missing");
+else {
+  const key = Uint8Array.from(atob(manifest.key), (value) => value.charCodeAt(0));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", key)).slice(0, 16);
+  const extensionId = [...digest].map((value) => `${String.fromCharCode(97 + (value >> 4))}${String.fromCharCode(97 + (value & 15))}`).join("");
+  if (codemodeExtensionOrigin !== `chrome-extension://${extensionId}`) failures.push("Worker allowlist does not match the signed extension identity");
 }
 const popup = await Bun.file("extension/popup.html").text();
 for (const warning of ["Full page access", "anything this page’s JavaScript can access", "Stop and detach"]) {
