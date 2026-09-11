@@ -9,12 +9,6 @@
   let receipt = $state("WAITING · connect the app, copy its MCP URL, then let your agent call a tool");
   let clearHighlight: ReturnType<typeof setTimeout> | undefined;
 
-  function openAgentLine() {
-    const target = frame.contentDocument?.querySelector<HTMLButtonElement>("#connect");
-    target?.click();
-    receipt = "OPENING · minting one short-lived session for this tab";
-  }
-
   onMount(() => {
     document.documentElement.dataset.hydrated = "true";
     const receive = (event: MessageEvent) => {
@@ -37,15 +31,8 @@
         receipt = "SESSION CLOSED · the wire is cut";
       }
     };
-    const click = (event: MouseEvent) => {
-      if ((event.target as Element).closest("#open-line")) openAgentLine();
-    };
     window.addEventListener("message", receive);
-    document.addEventListener("click", click);
-    return () => {
-      window.removeEventListener("message", receive);
-      document.removeEventListener("click", click);
-    };
+    return () => window.removeEventListener("message", receive);
   });
 </script>
 
@@ -102,7 +89,6 @@
       </article>
     </div>
 
-    <div class="relative z-10 mx-auto w-[calc(100%_-_24px)] max-w-[900px]"><button id="open-line" class={`w-full cursor-pointer rounded-b-2xl border px-6 py-5 font-black uppercase tracking-[.11em] shadow-[0_16px_50px_rgba(255,122,24,.2)] transition ${connected ? 'border-signal bg-[#10231b] text-signal' : 'border-echo bg-echo text-ink hover:bg-[#ff963f]'}`}>{connected ? 'Agent line open · copy the URL in the app' : 'Connect an agent'}</button></div>
     <div class="relative z-10 mx-auto mt-5 grid max-w-[1160px] gap-4 rounded-lg border border-white/15 bg-[#080c11] px-4 py-3 font-mono text-[11px] text-muted md:grid-cols-[1fr_auto]"><div><strong class:text-danger={receipt.startsWith('SESSION')} class="text-signal">{receipt.split(' · ')[0]}</strong>{receipt.includes(' · ') ? ` · ${receipt.split(' · ').slice(1).join(' · ')}` : ''}</div><div class="text-danger">STOP LIVES INSIDE THE APP</div></div>
   </section>
 

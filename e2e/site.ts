@@ -81,9 +81,9 @@ async function tool(endpoint: string, id: number, name: string, input: unknown, 
 try {
   await cdp("Runtime.enable");
   await cdp("Page.enable");
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && !!document.querySelector('#open-line')");
+  await waitFor("document.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')");
   await waitFor("document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')?.contentDocument?.querySelector('#connect')");
-  await evaluate("document.querySelector('#open-line').click(); true");
+  await evaluate("frames[0].document.querySelector('#connect').click(); true");
   await waitFor("frames[0].document.querySelector('#status')?.textContent === 'Agent connected'");
   const endpoint = await evaluate<string>("frames[0].document.querySelector('#session').textContent");
   const listed = await tool(endpoint, 1, "listTodos", {});
@@ -91,7 +91,7 @@ try {
   const text = `Hydrated through Echo ${Date.now()}`;
   const added = await tool(endpoint, 2, "addTodo", { text }, crypto.randomUUID());
   if (!added.result?.structuredContent?.ok) throw new Error("site_echo_add_failed");
-  await waitFor(`frames[0].document.body.textContent.includes(${JSON.stringify(text)}) && document.querySelector('#open-line').textContent.includes('Agent line open')`);
+  await waitFor(`frames[0].document.body.textContent.includes(${JSON.stringify(text)}) && document.body.textContent.includes('AGENT LINE OPEN')`);
   await waitFor("document.body.textContent.includes('ADDTODO · FINISHED · THIS CAME THROUGH ECHO')");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth");
