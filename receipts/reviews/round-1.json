@@ -1,9 +1,0 @@
-{
-  "sha": "3471e5e1d6214a2bd0179d270da368d30815e6ab",
-  "verdict": "ship",
-  "mustFix": 0,
-  "reviewer": "terrarium-independent-adversarial-review (gpt-5.6-sol)",
-  "runId": "ter_20260911122050490_dqwsoq",
-  "verifiedAt": "2026-09-11T12:22:02Z",
-  "findings": []
-}
