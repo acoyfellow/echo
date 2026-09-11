@@ -2,7 +2,8 @@ export {};
 
 const port = 10800 + Math.floor(Math.random() * 500);
 const appOrigin = `http://127.0.0.1:${port}`;
-const worker = Bun.spawn(["bunx", "wrangler", "dev", "--port", String(port), "--inspector-port", "0"], { stdout: "ignore", stderr: "ignore" });
+const signingSecret = process.env.ECHO_SIGNING_SECRET ?? "echo-local-e2e-signing-secret-32-chars";
+const worker = Bun.spawn(["bunx", "wrangler", "dev", "--port", String(port), "--inspector-port", "0", "--var", `ECHO_SIGNING_SECRET:${signingSecret}`], { stdout: "ignore", stderr: "ignore" });
 try {
   let ready = false;
   for (let attempt = 0; attempt < 600; attempt += 1) {
