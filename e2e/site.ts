@@ -94,7 +94,7 @@ try {
   await waitFor(`frames[0].document.body.textContent.includes(${JSON.stringify(text)}) && document.body.textContent.includes('AGENT LINE OPEN')`);
   await waitFor("document.body.textContent.includes('ADDTODO · FINISHED · THIS CAME THROUGH ECHO')");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth");
+  const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth && document.querySelector('#hero-code').scrollHeight <= document.querySelector('#hero-code').clientHeight");
   if (!responsive) throw new Error("site_mobile_overflow");
   await evaluate("frames[0].document.querySelector('#stop').click(); true");
   await waitFor("document.body.textContent.includes('SESSION CLOSED · the wire is cut')");
