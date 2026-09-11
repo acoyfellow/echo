@@ -22,7 +22,7 @@ Playable examples:
 
 - `/examples/todo/` exposes list, add, complete, and delete capabilities.
 - `/examples/notes/` exposes read, draft update, and uncertainty-test capabilities.
-- `/examples/` holds the complete arcade and fourteen planned examples.
+- `/examples/` links all sixteen playable apps in catalog order, with Previous, All examples, and Next navigation in every app.
 
 Connect and Stop stay inside each example. They are never exposed as agent capabilities.
 
