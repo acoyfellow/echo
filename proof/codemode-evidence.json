@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "3971315b625f6305c0e9ef5e0c9905af918e4006",
-  "receiptSha256": "c35a92daf6b6d9cfeedee4237c42170db7fa128baaf78dc66f4cb5c7cb56cb71",
+  "sourceCommit": "68ed1adda29fa236df6e7cba22af4721d395c4e6",
+  "receiptSha256": "a0925991ab7be861c709b5898bc0ded554c4e1558a54f1ded7658fcdf40cc4e8",
   "screenshots": [
     {
       "file": "approval.png",
