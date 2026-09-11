@@ -34,9 +34,18 @@
       "status": "completed",
       "codeHashLength": 64
     },
+    "uncertainOutcome": {
+      "error": "outcome_unknown",
+      "effectVisible": true,
+      "receiptStatus": "outcome_unknown"
+    },
     "stop": {
       "error": "session_closed",
       "reason": "user_stopped"
+    },
+    "workerRestart": {
+      "error": "session_closed",
+      "reason": "worker_restarted"
     },
     "navigation": {
       "error": "session_closed",

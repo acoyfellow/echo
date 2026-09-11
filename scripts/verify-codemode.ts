@@ -15,7 +15,9 @@ else {
       approvedTab?: { draft?: string; marker?: string };
       otherTab?: { draft?: string; marker?: string };
       receipt?: { status?: string; codeHashLength?: number };
+      uncertainOutcome?: { error?: string; effectVisible?: boolean; receiptStatus?: string };
       stop?: { error?: string; reason?: string };
+      workerRestart?: { error?: string; reason?: string };
       navigation?: { error?: string; reason?: string };
       expiry?: { error?: string; reason?: string };
     };
@@ -30,7 +32,9 @@ else {
   if (observations?.approvedTab?.draft !== "Changed by Codemode" || observations.approvedTab.marker !== "executed") failures.push("approved tab mutation was not observed");
   if (observations?.otherTab?.draft !== "Initial draft" || observations.otherTab.marker) failures.push("unapproved tab was affected");
   if (observations?.receipt?.status !== "completed" || observations.receipt.codeHashLength !== 64) failures.push("redacted execution receipt is incomplete");
+  if (observations?.uncertainOutcome?.error !== "outcome_unknown" || !observations.uncertainOutcome.effectVisible || observations.uncertainOutcome.receiptStatus !== "outcome_unknown") failures.push("post-effect failure was not recorded as outcome unknown");
   if (observations?.stop?.error !== "session_closed" || observations.stop.reason !== "user_stopped") failures.push("trusted Stop did not revoke access");
+  if (observations?.workerRestart?.error !== "session_closed" || observations.workerRestart.reason !== "worker_restarted") failures.push("service worker restart did not fail closed");
   if (observations?.navigation?.error !== "session_closed" || observations.navigation.reason !== "origin_changed") failures.push("cross-origin navigation did not revoke access");
   if (observations?.expiry?.error !== "session_closed" || observations.expiry.reason !== "expired") failures.push("expiry did not revoke access");
   if (!receipt.independentEvidence?.length || !receipt.redactions?.includes("generated JavaScript source")) failures.push("Codemode evidence or redactions are incomplete");

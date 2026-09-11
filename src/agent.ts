@@ -137,7 +137,7 @@ export class EchoAgent extends Agent<Env, SessionState> {
       operationId,
     });
     if (operationId) {
-      const status = result.error === "session_closed" || result.error === "timeout" ? "outcome_unknown" : result.ok ? "completed" : "failed";
+      const status = result.error === "session_closed" || result.error === "timeout" || result.error === "outcome_unknown" ? "outcome_unknown" : result.ok ? "completed" : "failed";
       this.setState({
         ...this.state,
         operations: { ...this.state.operations, [operationId]: { operationId, capability: name, status, result } },

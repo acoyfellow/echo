@@ -49,6 +49,7 @@ async function stopSession(reason: string): Promise<void> {
   previousSocket?.close();
   await chrome.alarms.clear(expiryAlarm);
   if (previous) await chrome.debugger.detach({ tabId: previous.tabId }).catch(() => undefined);
+  await chrome.storage.session.remove("echoSession");
   await chrome.storage.session.set({ echoStatus: { active: false, reason } });
   await chrome.action.setBadgeText({ text: "" });
   stopping = false;
@@ -67,24 +68,26 @@ async function evaluatePage(code: string): Promise<{ ok: boolean; result?: unkno
   }
   const startedAt = Date.now();
   const hash = await codeHash(code);
+  const authority = state;
+  const guardedCode = `(async()=>{if(location.origin!==${JSON.stringify(authority.origin)}||Date.now()>=${authority.expiresAt})throw new Error('echo_authority_revoked');return await (0,eval)(${JSON.stringify(code)});})()`;
   try {
-    const response = await chrome.debugger.sendCommand({ tabId: state.tabId }, "Runtime.evaluate", {
-      expression: code,
+    const response = await chrome.debugger.sendCommand({ tabId: authority.tabId }, "Runtime.evaluate", {
+      expression: guardedCode,
       awaitPromise: true,
       returnByValue: true,
       userGesture: false,
     }) as { result?: { value?: unknown; unserializableValue?: string }; exceptionDetails?: unknown };
-    if (response.exceptionDetails) throw new Error("page_execution_failed");
+    if (response.exceptionDetails) throw new Error("page_execution_uncertain");
     const result = response.result?.value ?? response.result?.unserializableValue ?? null;
     await chrome.storage.session.set({
-      echoLastReceipt: { origin: state.origin, codeHash: hash, startedAt, finishedAt: Date.now(), status: "completed" },
+      echoLastReceipt: { origin: authority.origin, codeHash: hash, startedAt, finishedAt: Date.now(), status: "completed" },
     });
     return { ok: true, result };
   } catch {
     await chrome.storage.session.set({
-      echoLastReceipt: { origin: state?.origin ?? "revoked", codeHash: hash, startedAt, finishedAt: Date.now(), status: "failed" },
+      echoLastReceipt: { origin: authority.origin, codeHash: hash, startedAt, finishedAt: Date.now(), status: "outcome_unknown" },
     });
-    return { ok: false, error: "page_execution_failed" };
+    return { ok: false, error: "outcome_unknown" };
   }
 }
 
@@ -158,13 +161,17 @@ async function handleSocketMessage(connection: WebSocket, event: MessageEvent): 
   if (connection.readyState === WebSocket.OPEN) connection.send(JSON.stringify({ type: "result", callId: message.callId, result }));
 }
 
-async function approve(tabId?: number, durationMs = 10 * 60_000): Promise<{ ok: boolean; error?: string; mcpUrl?: string; origin?: string; expiresAt?: number }> {
+async function approve(tabId?: number, durationMs = 10 * 60_000, expectedOrigin?: string): Promise<{ ok: boolean; error?: string; mcpUrl?: string; origin?: string; expiresAt?: number }> {
   if (state) return { ok: false, error: "session_active" };
   const tab = tabId ? await chrome.tabs.get(tabId).catch(() => null) : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   const page = validPage(tab?.url);
-  if (!tab?.id || !page) return { ok: false, error: "unsupported_tab" };
-  await chrome.debugger.attach({ tabId: tab.id }, debuggerVersion).catch(() => { throw new Error("debugger_attach_failed"); });
+  if (!tab?.id || !page || (expectedOrigin && expectedOrigin !== page.origin)) return { ok: false, error: "unsupported_tab" };
+  let attached = false;
   try {
+    await chrome.debugger.attach({ tabId: tab.id }, debuggerVersion);
+    attached = true;
+    const attachedPage = validPage((await chrome.tabs.get(tab.id)).url);
+    if (attachedPage?.origin !== page.origin) throw new Error("origin_changed");
     const response = await fetch(`${workerBase}/sessions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -188,6 +195,7 @@ async function approve(tabId?: number, durationMs = 10 * 60_000): Promise<{ ok: 
       expiresAt,
     };
     state = session;
+    await chrome.storage.session.set({ echoSession: session });
     await connectSocket(session);
     await chrome.alarms.create(expiryAlarm, { when: expiresAt });
     await chrome.storage.session.set({ echoStatus: { active: true, origin: page.origin, expiresAt } });
@@ -195,10 +203,20 @@ async function approve(tabId?: number, durationMs = 10 * 60_000): Promise<{ ok: 
     await chrome.action.setBadgeText({ text: "FULL" });
     return { ok: true, mcpUrl: session.mcpUrl, origin: page.origin, expiresAt };
   } catch (error) {
-    await stopSession("approval_failed");
+    if (state) await stopSession("approval_failed");
+    else if (attached) await chrome.debugger.detach({ tabId: tab.id }).catch(() => undefined);
     return { ok: false, error: error instanceof Error ? error.message : "approval_failed" };
   }
 }
+
+async function restoreSession(): Promise<void> {
+  const stored = await chrome.storage.session.get("echoSession") as { echoSession?: SessionState };
+  if (!stored.echoSession) return;
+  state = stored.echoSession;
+  await stopSession("worker_restarted");
+}
+
+const restoration = restoreSession();
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (state?.tabId !== tabId || !changeInfo.url) return;
@@ -219,18 +237,19 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "approve") {
-    approve(
+    restoration.then(() => approve(
       typeof message.tabId === "number" ? message.tabId : undefined,
       typeof message.durationMs === "number" ? message.durationMs : undefined,
-    ).then(sendResponse);
+      typeof message.expectedOrigin === "string" ? message.expectedOrigin : undefined,
+    )).then(sendResponse);
     return true;
   }
   if (message?.type === "stop") {
-    stopSession("user_stopped").then(() => sendResponse({ ok: true }));
+    restoration.then(() => stopSession("user_stopped")).then(() => sendResponse({ ok: true }));
     return true;
   }
   if (message?.type === "status") {
-    chrome.storage.session.get(["echoStatus", "echoLastReceipt"]).then((stored) => sendResponse({
+    restoration.then(() => chrome.storage.session.get(["echoStatus", "echoLastReceipt"])).then((stored) => sendResponse({
       active: !!state,
       origin: state?.origin,
       expiresAt: state?.expiresAt,

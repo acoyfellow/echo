@@ -38,7 +38,7 @@ Open `chrome://extensions`, enable Developer mode, and load `extension/`. Start 
 
 Codemode’s approval is intentionally broad. The agent can read and change anything that page JavaScript can access, including DOM state, browser storage, hidden app state, and authenticated actions. Approval is limited to one tab, one origin, and ten minutes. Cross-origin navigation, expiry, closing the tab, or pressing **Stop and detach** revokes future access.
 
-Stopping cannot undo changes or listeners that already ran. Reload the page when you need a clean page state. Chrome shows its debugging disclosure while Codemode is attached.
+Stopping cannot undo changes or listeners that already ran. A page or debugger error after dispatch is reported as `outcome_unknown`. A companion service worker restart fails closed and detaches the stored session. Reload the page when you need a clean page state. Chrome shows its debugging disclosure while Codemode is attached.
 
 ## Add Echo to an app
 
@@ -87,7 +87,7 @@ A mutation requires an `operationId`. Echo stores its result. A repeated operati
 
 Separate signed credentials connect the page and MCP client. Each credential binds one random session, app ID, origin, credential kind, and expiry. The Worker derives identity from the signed credential, not message text.
 
-Echo does not expose:
+App-defined mode does not expose:
 
 - cookies or session tokens
 - local or session storage
@@ -99,6 +99,8 @@ Echo does not expose:
 - native permission prompts
 - trusted keyboard or pointer input
 - Connect, approval, or Stop controls
+
+Codemode deliberately grants the first approved page full access to its own JavaScript, DOM, storage, selectors, and authenticated fetch. It still does not grant browser chrome, another tab or origin, native prompts, trusted input, or control of its external Stop button.
 
 Echo does not protect an app from its own same-origin JavaScript or XSS. The app remains responsible for each capability and its data-sharing policy.
 

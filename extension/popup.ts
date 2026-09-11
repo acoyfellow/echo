@@ -56,7 +56,12 @@ async function refresh(): Promise<void> {
 approve.addEventListener("click", async () => {
   approve.disabled = true;
   scope.textContent = "Attaching to this tab";
-  const result = await chrome.runtime.sendMessage({ type: "approve", tabId: Number(tabs.value) }) as { ok?: boolean; error?: string };
+  const selected = tabs.selectedOptions[0];
+  const result = await chrome.runtime.sendMessage({
+    type: "approve",
+    tabId: Number(tabs.value),
+    expectedOrigin: selected?.dataset.url ? new URL(selected.dataset.url).origin : undefined,
+  }) as { ok?: boolean; error?: string };
   if (!result.ok) scope.textContent = result.error ?? "Approval failed";
   await refresh();
 });

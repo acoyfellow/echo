@@ -175,6 +175,14 @@ try {
   const executedScreenshot = await approvedPage.call("Page.captureScreenshot", { format: "png" }) as { data: string };
   await writeFile(join(output, "executed.png"), Buffer.from(executedScreenshot.data, "base64"));
   const activeStatus = await popupMessage<{ active?: boolean; lastReceipt?: { codeHash?: string; status?: string } }>(popup, { type: "status" });
+  const uncertain = await mcpCall(
+    approval.mcpUrl,
+    5,
+    `(()=>{document.body.dataset.echoUncertain='effect-visible';throw new Error('after-effect')})()`,
+    "codemode-uncertain-1",
+  );
+  const uncertainObservation = await approvedPage.evaluate<string | undefined>("document.body.dataset.echoUncertain");
+  const uncertainStatus = await popupMessage<{ lastReceipt?: { status?: string } }>(popup, { type: "status" });
   await popup.call("Page.reload");
   await waitForReady(popup);
   const popupScreenshot = await popup.call("Page.captureScreenshot", { format: "png" }) as { data: string };
@@ -182,6 +190,19 @@ try {
   await popupMessage(popup, { type: "stop" });
   const afterStop = await mcpCall(approval.mcpUrl, 2, "document.title", "codemode-after-stop");
   const stoppedStatus = await popupMessage<{ active?: boolean; status?: { reason?: string } }>(popup, { type: "status" });
+
+  const restartApproval = await popup.evaluate<{ ok?: boolean; mcpUrl?: string }>(`(async()=>{
+    const tabs=await chrome.tabs.query({url:${JSON.stringify(`${base}/demo/*`)}});
+    const tab=tabs.find((candidate)=>candidate.url.includes('codemode=approved'));
+    return chrome.runtime.sendMessage({type:'approve',tabId:tab.id});
+  })()`);
+  if (!restartApproval.ok || !restartApproval.mcpUrl) throw new Error("restart_session_failed");
+  const extensionWorker = (await targets()).find((target) => target.type === "service_worker" && target.url.startsWith(`chrome-extension://${extensionId}/`));
+  if (!extensionWorker) throw new Error("extension_worker_missing");
+  await browser.call("Target.closeTarget", { targetId: extensionWorker.id });
+  await Bun.sleep(500);
+  const restartStatus = await popupMessage<{ active?: boolean; status?: { reason?: string } }>(popup, { type: "status" });
+  const afterRestart = await mcpCall(restartApproval.mcpUrl, 6, "document.title", "codemode-after-restart");
 
   const secondApproval = await popup.evaluate<{ ok?: boolean; mcpUrl?: string }>(`(async()=>{
     const tabs=await chrome.tabs.query({url:${JSON.stringify(`${base}/demo/*`)}});
@@ -219,9 +240,15 @@ try {
     && activeStatus.active === true
     && activeStatus.lastReceipt?.status === "completed"
     && activeStatus.lastReceipt.codeHash?.length === 64
+    && uncertain.error === "outcome_unknown"
+    && uncertainObservation === "effect-visible"
+    && uncertainStatus.lastReceipt?.status === "outcome_unknown"
     && afterStop.error === "session_closed"
     && stoppedStatus.active === false
     && stoppedStatus.status?.reason === "user_stopped"
+    && afterRestart.error === "session_closed"
+    && restartStatus.active === false
+    && restartStatus.status?.reason === "worker_restarted"
     && afterNavigation.error === "session_closed"
     && navigationStatus.active === false
     && navigationStatus.status?.reason === "origin_changed"
@@ -243,7 +270,9 @@ try {
       approvedTab: approvedObservation,
       otherTab: otherObservation,
       receipt: { status: activeStatus.lastReceipt?.status, codeHashLength: activeStatus.lastReceipt?.codeHash?.length },
+      uncertainOutcome: { error: uncertain.error, effectVisible: uncertainObservation === "effect-visible", receiptStatus: uncertainStatus.lastReceipt?.status },
       stop: { error: afterStop.error, reason: stoppedStatus.status?.reason },
+      workerRestart: { error: afterRestart.error, reason: restartStatus.status?.reason },
       navigation: { error: afterNavigation.error, reason: navigationStatus.status?.reason },
       expiry: { error: afterExpiry.error, reason: expiryStatus.status?.reason },
     },
