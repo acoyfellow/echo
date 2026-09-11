@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { createEcho, type EchoClient } from "../../client";
+  import ExampleFooter from "../ExampleFooter.svelte";
 
   let draft = $state("Initial draft");
   let status = $state("Agent access stopped");
@@ -111,5 +112,6 @@
     <div class="my-4 rounded-lg bg-[#182431] p-4"><strong id="status">{status}</strong><p id="activity" class="my-2 text-sm text-muted">{activity}</p>{#if mcpUrl}<code id="session" class="block [overflow-wrap:anywhere] font-mono text-[10px] text-[#76c7f0]">{mcpUrl}</code><button id="copy" type="button" class="mt-3 rounded-lg bg-[#76c7f0] px-4 py-2 text-xs font-bold text-ink">{copied ? 'Copied' : 'Copy session URL'}</button>{:else}<code id="session"></code>{/if}</div>
     <div class="flex gap-2">{#if !mcpUrl}<button id="connect" type="button" disabled={connecting} class="rounded-lg bg-echo px-4 py-3 font-bold text-ink disabled:opacity-50">Connect this tab</button>{:else}<button id="stop" type="button" class="rounded-lg bg-danger px-4 py-3 font-bold text-ink">Stop agent access</button>{/if}</div>
     {#if !mcpUrl}<button id="stop" type="button" class="hidden">Stop agent access</button>{/if}
+    <ExampleFooter slug="notes" />
   </section>
 </main>

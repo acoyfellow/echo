@@ -7,6 +7,8 @@ import { handleMcp } from "./mcp";
 import { handleSessionCreate, handleSessionPreflight } from "./sessions";
 import { renderFavicon, renderOg, renderRobots, renderSitemap } from "./site";
 import type { Env } from "./types";
+import ArcadeApp from "../examples/ArcadeApp.svelte";
+import { examples as catalogExamples } from "../examples/catalog";
 import Notes from "../examples/notes/App.svelte";
 import Todo from "../examples/todo/App.svelte";
 import Examples from "./ui/Examples.svelte";
@@ -23,6 +25,9 @@ app.get("/", svelteRenderer(Home, { hydrateAs: "home", title: "Echo — wire an 
 app.get("/examples", svelteRenderer(Examples, { hydrateAs: "examples", title: "Echo examples — little apps for agents", head: head("/examples/"), props: {} }));
 app.get("/examples/todo", svelteRenderer(Todo, { hydrateAs: "todo", title: "Tiny Todo — Echo example", head: head("/examples/todo/"), props: {} }));
 app.get("/examples/notes", svelteRenderer(Notes, { hydrateAs: "notes", title: "Live Notes — Echo example", head: head("/examples/notes/"), props: {} }));
+for (const example of catalogExamples.slice(2)) {
+  app.get(`/examples/${example.slug}`, svelteRenderer(ArcadeApp, { hydrateAs: "arcade", title: `${example.name} — Echo example`, head: head(`/examples/${example.slug}/`), props: { slug: example.slug } }));
+}
 app.get("/demo", svelteRenderer(Notes, { hydrateAs: "notes", title: "Live Notes — Echo example", head: head("/demo/"), props: {} }));
 
 app.get("/health", (context) => {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { createEcho, type EchoClient } from "../../client";
+  import ExampleFooter from "../ExampleFooter.svelte";
 
   type Todo = { id: string; text: string; completed: boolean };
   const defaults: Todo[] = [
@@ -177,5 +178,6 @@
       </div></div>
       {#if mcpUrl}<code id="session" class="mt-3 block [overflow-wrap:anywhere] rounded-lg bg-[#182431] p-3 font-mono text-[10px] leading-relaxed text-[#76c7f0]">{mcpUrl}</code>{/if}
     </footer>
+    <ExampleFooter slug="todo" />
   </section>
 </main>

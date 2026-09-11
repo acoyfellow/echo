@@ -20,6 +20,7 @@
     "e2e:chrome": "bun e2e/chrome.ts",
     "e2e:safari": "bun e2e/safari.ts",
     "e2e:site": "bun scripts/check-site-e2e.ts",
+    "e2e:examples": "bun scripts/check-examples-e2e.ts",
     "e2e:codemode": "bun e2e/codemode.ts",
     "e2e:codemode:check": "bun scripts/check-codemode-e2e.ts",
     "verify:codemode": "bun scripts/verify-codemode.ts",
