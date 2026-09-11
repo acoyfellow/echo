@@ -11,7 +11,7 @@ export type EchoExample = {
 
 export const examples: EchoExample[] = [
   { slug: "todo", name: "Tiny Todo", emoji: "✓", description: "The full-stack hello world. Let an agent run the list while you watch.", prompt: "Finish my list and add one thing I forgot.", tools: ["list", "add", "complete", "delete"], live: true, color: "#f6821f" },
-  { slug: "notes", name: "Live Notes", emoji: "✎", description: "Share a draft, not the whole browser. Read it, rewrite it, stop access.", prompt: "Tighten this note without changing my voice.", tools: ["read", "rewrite"], live: true, color: "#71b8d8" },
+  { slug: "notes", name: "Live Notes", emoji: "✎", description: "Share a draft, not the whole browser. Read it, rewrite it, stop access.", prompt: "Tighten this note without changing my voice.", tools: ["read", "rewrite", "uncertainty test"], live: true, color: "#71b8d8" },
   { slug: "tiny-dungeon", name: "Tiny Dungeon", emoji: "⚔", description: "A six-room adventure where the agent plays dungeon master and the page keeps score.", prompt: "Surprise me. Make the next room dangerous.", tools: ["reveal room", "spawn monster", "award loot"], live: false, color: "#c792ea" },
   { slug: "joke-lab", name: "Joke Lab", emoji: "☺", description: "Build, rate, and mercilessly improve one joke until it earns a laugh.", prompt: "Workshop this premise. Be brutal but useful.", tools: ["read premise", "add punchline", "rate laugh"], live: false, color: "#f7b53b" },
   { slug: "pixel-pet", name: "Pixel Pet", emoji: "◆", description: "A tiny creature with needs, moods, and a suspicious amount of personality.", prompt: "Keep Momo happy while I am away.", tools: ["check mood", "feed", "play", "rename"], live: false, color: "#63d5a2" },
