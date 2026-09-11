@@ -18,15 +18,15 @@ try {
 
   const landing = await read("/");
   if (landing.response.status !== 200) failures.push(`landing returned ${landing.response.status}`);
-  for (const text of ["Let an agent work in your app.", "No extension. No debugging port.", "The app stays in control."]) {
+  for (const text of ["Your app already knows what to do.", "A live web app becomes an MCP server.", "Little apps. Strange powers."]) {
     if (!landing.text.includes(text)) failures.push(`landing is missing: ${text}`);
   }
   for (const stale of ["WebMCP over MCP", "webmcp_list_tools", "Echo extension →"]) {
     if (landing.text.includes(stale)) failures.push(`landing contains stale copy: ${stale}`);
   }
 
-  const demo = await read("/demo/");
-  if (demo.response.status !== 200 || !demo.text.includes("Connect this tab") || !demo.text.includes("Stop agent access")) failures.push("production demo is unavailable");
+  const demo = await read("/examples/todo/");
+  if (demo.response.status !== 200 || !demo.text.includes("Tiny todo") || !demo.text.includes("Connect an agent") || !demo.text.includes("Stop")) failures.push("production Todo example is unavailable");
 
   const unauthorized = await fetch(`${origin}/sessions`, {
     method: "POST",
