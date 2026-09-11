@@ -19,17 +19,27 @@ for (const candidate of testingCandidates) {
 }
 const binary = process.env.CHROME_PATH || testingBinary || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const extension = new URL("../extension", import.meta.url).pathname;
+const defaultOutput = new URL("../receipts/codemode/chrome-local", import.meta.url).pathname;
+const output = process.env.ECHO_CODEMODE_OUTPUT || defaultOutput;
 const manifest = await Bun.file(new URL("../extension/manifest.json", import.meta.url)).json() as { key: string };
 const publicKey = Uint8Array.from(atob(manifest.key), (value) => value.charCodeAt(0));
 const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", publicKey)).slice(0, 16);
 const extensionId = [...digest].map((value) => `${String.fromCharCode(97 + (value >> 4))}${String.fromCharCode(97 + (value & 15))}`).join("");
-const output = new URL("../receipts/codemode/chrome-local", import.meta.url).pathname;
 const port = 9800 + Math.floor(Math.random() * 500);
 const profile = await mkdtemp(join(tmpdir(), "echo-codemode-"));
 await mkdir(output, { recursive: true });
 
-const health = await fetch(`${base}/health`).catch(() => null);
-if (!health?.ok) throw new Error("local_worker_required");
+let worker: ReturnType<typeof Bun.spawn> | null = null;
+let health = await fetch(`${base}/health`).catch(() => null);
+if (!health?.ok) {
+  worker = Bun.spawn(["bun", "run", "dev"], { cwd: new URL("..", import.meta.url).pathname, stdout: "ignore", stderr: "ignore" });
+  for (let attempt = 0; attempt < 150; attempt += 1) {
+    await Bun.sleep(100);
+    health = await fetch(`${base}/health`).catch(() => null);
+    if (health?.ok) break;
+  }
+}
+if (!health?.ok) throw new Error("local_worker_start_failed");
 
 const chrome = Bun.spawn([
   binary,
@@ -274,6 +284,12 @@ try {
   const screenshot = await approvedPage.call("Page.captureScreenshot", { format: "png" }) as { data: string };
   await writeFile(join(output, "final.png"), Buffer.from(screenshot.data, "base64"));
   const sourceCommit = (await Bun.$`git rev-parse HEAD`.text()).trim();
+  const screenshots = [];
+  for (const file of ["approval.png", "executed.png", "final.png"]) {
+    const bytes = await Bun.file(join(output, file)).arrayBuffer();
+    const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+    screenshots.push({ file, sha256 });
+  }
   const receipt = {
     schemaVersion: 1,
     sourceCommit,
@@ -293,7 +309,8 @@ try {
       navigation: { error: afterNavigation.error, reason: navigationStatus.status?.reason },
       expiry: { error: afterExpiry.error, reason: expiryStatus.status?.reason },
     },
-    independentEvidence: ["Chrome DevTools Protocol referee clicked the approval UI and observed both approved and unapproved tabs", "receipts/codemode/chrome-local/approval.png", "receipts/codemode/chrome-local/executed.png", "receipts/codemode/chrome-local/final.png"],
+    screenshots,
+    independentEvidence: ["Chrome DevTools Protocol referee clicked the approval UI and observed both approved and unapproved tabs", "approval.png", "executed.png", "final.png"],
     redactions: ["MCP session credential", "page token", "generated JavaScript source", "execution result values"],
     limitations: ["The Chrome debugger permission shows Chrome's debugging disclosure while attached.", "Stopping detaches future authority but does not undo page changes already made.", "The Worker runs locally on loopback."],
   };
@@ -308,4 +325,8 @@ try {
   chrome.kill();
   await chrome.exited;
   await rm(profile, { recursive: true, force: true });
+  if (worker) {
+    worker.kill();
+    await worker.exited;
+  }
 }
