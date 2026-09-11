@@ -55,20 +55,25 @@ async function stopSession(reason: string): Promise<void> {
   stopping = false;
 }
 
-async function currentTabMatches(): Promise<boolean> {
-  if (!state) return false;
-  const tab = await chrome.tabs.get(state.tabId).catch(() => null);
-  return validPage(tab?.url)?.origin === state.origin;
+async function currentTabMatches(authority: SessionState): Promise<boolean> {
+  const tab = await chrome.tabs.get(authority.tabId).catch(() => null);
+  return validPage(tab?.url)?.origin === authority.origin;
 }
 
 async function evaluatePage(code: string): Promise<{ ok: boolean; result?: unknown; error?: string }> {
-  if (!state || !await currentTabMatches()) {
-    await stopSession("origin_changed");
+  const authority = state;
+  if (!authority) return { ok: false, error: "session_closed" };
+  if (Date.now() >= authority.expiresAt) {
+    if (state === authority) await stopSession("expired");
+    return { ok: false, error: "session_closed" };
+  }
+  if (!await currentTabMatches(authority)) {
+    if (state === authority) await stopSession("origin_changed");
     return { ok: false, error: "origin_changed" };
   }
   const startedAt = Date.now();
   const hash = await codeHash(code);
-  const authority = state;
+  if (state !== authority || Date.now() >= authority.expiresAt) return { ok: false, error: "session_closed" };
   const guardedCode = `(async()=>{if(location.origin!==${JSON.stringify(authority.origin)}||Date.now()>=${authority.expiresAt})throw new Error('echo_authority_revoked');return await (0,eval)(${JSON.stringify(code)});})()`;
   try {
     const response = await chrome.debugger.sendCommand({ tabId: authority.tabId }, "Runtime.evaluate", {
