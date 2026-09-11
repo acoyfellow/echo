@@ -2,9 +2,9 @@
 
 **Let an agent use capabilities exposed by one user-approved live app tab.**
 
-Echo is a small TypeScript client and a Cloudflare Worker. An app registers a short list of actions. A person connects the current tab. The agent can call only those actions until the person presses Stop.
+Echo is a TypeScript client, a Chrome companion, and a Cloudflare Worker. It has two authority modes. An integrated app can expose a short list of named actions. Codemode can instead give an agent temporary full JavaScript access to one approved Chrome tab.
 
-Echo does not need a browser extension, Chrome DevTools, WebDriver, or native WebMCP. Those tools may inspect an end-to-end test, but they are not part of Echo's product connection.
+The app-defined mode does not need a browser extension. Full-page Codemode uses the Chrome companion and Chrome debugger API so generated JavaScript can run in the authenticated page’s main world.
 
 > Status: `0.0.1`, public experiment at [echo.coey.dev](https://echo.coey.dev).
 
@@ -25,6 +25,20 @@ The demo exposes three capabilities:
 - `uncertainMutation` tests a disconnect after an effect and before its result.
 
 The page does not expose Connect or Stop as capabilities. A person must press those buttons.
+
+## Try full-page Codemode
+
+Build the unpacked Chrome companion:
+
+```sh
+bun run build:extension
+```
+
+Open `chrome://extensions`, enable Developer mode, and load `extension/`. Start the local Worker, open the page you want to use, and choose Echo Codemode from the Chrome toolbar.
+
+Codemode’s approval is intentionally broad. The agent can read and change anything that page JavaScript can access, including DOM state, browser storage, hidden app state, and authenticated actions. Approval is limited to one tab, one origin, and ten minutes. Cross-origin navigation, expiry, closing the tab, or pressing **Stop and detach** revokes future access.
+
+Stopping cannot undo changes or listeners that already ran. Reload the page when you need a clean page state. Chrome shows its debugging disclosure while Codemode is attached.
 
 ## Add Echo to an app
 
@@ -107,7 +121,7 @@ bun run verify:extension-free
 
 The checked receipts name the exact browser versions. Browser state and screenshots are captured by an independent test referee. Echo's own response is not enough to pass.
 
-Local browser evidence lives under `receipts/extension-free/`. Production browser evidence lives under `receipts/production/`.
+App-defined browser evidence lives under `receipts/extension-free/`. Full-page Chrome evidence lives under `receipts/codemode/`. Production browser evidence lives under `receipts/production/`.
 
 ## Current limits
 
@@ -122,6 +136,7 @@ Local browser evidence lives under `receipts/extension-free/`. Production browse
 
 ```text
 client/       in-page Echo client
+extension/    trusted Chrome Codemode companion
 demo/         disposable demo app
 src/          Worker, MCP, credentials, and Durable Object
 e2e/          independent browser referees

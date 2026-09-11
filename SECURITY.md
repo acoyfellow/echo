@@ -6,13 +6,17 @@ Do not report security problems in a public GitHub issue. Use GitHub's private v
 
 ## Boundary
 
-Echo gives an agent access only to capabilities that an integrated app registers for one connected page session.
+Echo has two intentionally different authority modes.
 
-Echo does not provide protection from malicious same-origin JavaScript or XSS. App code can access values that the Echo client receives, including the MCP session URL. The app must protect its origin and choose what each capability may read or change.
+App-defined mode gives an agent only the capabilities an integrated app registers for one page session. The app must protect its origin and choose what each capability may read or change.
 
-Echo does not expose cookies, browser storage, arbitrary JavaScript, arbitrary selectors, cross-origin navigation, browser chrome, native prompts, or trusted user input.
+Full-page Codemode gives generated JavaScript the approved page’s main-world authority. It can read and modify the DOM, browser storage available to that origin, hidden application state, and authenticated actions available to page JavaScript. This is one broad permission; Echo does not claim to isolate those powers from one another.
 
-A mutation requires an operation ID. A repeated completed operation returns its stored result. An uncertain mutation is not retried automatically. The app must also enforce operation identity at its external-effect boundary.
+Codemode approval is bound to one Chrome tab, one origin, and a short expiry. Cross-origin navigation, tab close, expiry, or trusted extension Stop detaches the debugger and revokes the session. Stop prevents future execution but cannot undo page changes, requests, or listeners that already ran.
+
+Codemode does not grant another tab, another origin, browser chrome, local files, native prompts, or trusted user input. The Chrome debugger permission displays Chrome’s own debugging disclosure while attached.
+
+Every mutation requires an operation ID. A repeated completed operation returns its stored result. An uncertain mutation is not retried automatically. Codemode receipts store a hash and status, not generated source, session credentials, or result values.
 
 ## Deployment
 

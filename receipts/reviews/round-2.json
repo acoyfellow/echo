@@ -1,9 +1,0 @@
-{
-  "sha": "92b2005f7585abb65527dd81fe84d7cb6a273950",
-  "verdict": "ship",
-  "mustFix": 0,
-  "reviewer": "Terrarium child agent adversarial review 2 (gpt-5.4)",
-  "runId": "ter_20260910225250928_8pq4s8",
-  "verifiedAt": "2026-09-10T22:53:40Z",
-  "findings": []
-}

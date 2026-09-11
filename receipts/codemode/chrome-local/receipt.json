@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "claim": "Echo Codemode grants full JavaScript authority to one explicitly approved Chrome tab and revokes it from trusted extension UI.",
+  "environment": {
+    "browser": "Chrome/151.0.7922.34",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36",
+    "origin": "http://127.0.0.1:8870"
+  },
+  "authority": {
+    "mode": "page.javascript.full",
+    "durationMinutes": 10,
+    "exactTab": true,
+    "exactOrigin": true,
+    "trustedStop": "Chrome extension service worker"
+  },
+  "observations": {
+    "beforeApproval": {
+      "active": false
+    },
+    "execution": {
+      "ok": true,
+      "readPrivateState": true,
+      "readStorage": true
+    },
+    "approvedTab": {
+      "draft": "Changed by Codemode",
+      "marker": "executed"
+    },
+    "otherTab": {
+      "draft": "Initial draft"
+    },
+    "receipt": {
+      "status": "completed",
+      "codeHashLength": 64
+    },
+    "stop": {
+      "error": "session_closed",
+      "reason": "user_stopped"
+    },
+    "navigation": {
+      "error": "session_closed",
+      "reason": "origin_changed"
+    },
+    "expiry": {
+      "error": "session_closed",
+      "reason": "expired"
+    }
+  },
+  "independentEvidence": [
+    "Chrome DevTools Protocol referee clicked the approval UI and observed both approved and unapproved tabs",
+    "receipts/codemode/chrome-local/approval.png",
+    "receipts/codemode/chrome-local/executed.png",
+    "receipts/codemode/chrome-local/final.png"
+  ],
+  "redactions": [
+    "MCP session credential",
+    "page token",
+    "generated JavaScript source",
+    "execution result values"
+  ],
+  "limitations": [
+    "The Chrome debugger permission shows Chrome's debugging disclosure while attached.",
+    "Stopping detaches future authority but does not undo page changes already made.",
+    "The Worker runs locally on loopback."
+  ]
+}

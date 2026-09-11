@@ -13,6 +13,11 @@ function validBrowserOrigin(value: string | null): value is string {
   }
 }
 
+function validRequesterOrigin(value: string | null): value is string {
+  if (validBrowserOrigin(value)) return true;
+  return typeof value === "string" && /^chrome-extension:\/\/[a-p]{32}$/.test(value);
+}
+
 function corsHeaders(origin: string): HeadersInit {
   return {
     "access-control-allow-origin": origin,
@@ -25,21 +30,26 @@ function corsHeaders(origin: string): HeadersInit {
 
 export function handleSessionPreflight(request: Request): Response {
   const origin = request.headers.get("origin");
-  if (!validBrowserOrigin(origin)) return new Response(null, { status: 403 });
+  if (!validRequesterOrigin(origin)) return new Response(null, { status: 403 });
   return new Response(null, { status: 204, headers: corsHeaders(origin) });
 }
 
 export async function handleSessionCreate(request: Request, env: Env): Promise<Response> {
   const text = await readBoundedBody(request, 4096);
   if (text === null) return Response.json({ error: "request_too_large" }, { status: 413 });
-  let body: { origin?: string; appId?: string; capabilities?: unknown };
-  try { body = JSON.parse(text) as { origin?: string; appId?: string; capabilities?: unknown }; }
+  let body: { origin?: string; appId?: string; capabilities?: unknown; mode?: string };
+  try { body = JSON.parse(text) as { origin?: string; appId?: string; capabilities?: unknown; mode?: string }; }
   catch { return Response.json({ error: "bad_request" }, { status: 400 }); }
   if (!body.origin) return Response.json({ error: "origin_required" }, { status: 400 });
   const appId = body.appId ?? "legacy-webmcp";
   if (!/^[a-zA-Z][a-zA-Z0-9_.-]{0,127}$/.test(appId)) return Response.json({ error: "app_id_invalid" }, { status: 400 });
   const requestOrigin = request.headers.get("origin");
-  if (!validBrowserOrigin(requestOrigin) || requestOrigin !== body.origin) return Response.json({ error: "request_origin_mismatch" }, { status: 403 });
+  const codemode = body.mode === "codemode";
+  if (codemode) {
+    if (!requestOrigin?.match(/^chrome-extension:\/\/[a-p]{32}$/)) return Response.json({ error: "extension_origin_required" }, { status: 403 });
+  } else if (!validBrowserOrigin(requestOrigin) || requestOrigin !== body.origin) {
+    return Response.json({ error: "request_origin_mismatch" }, { status: 403 });
+  }
   if (!Array.isArray(body.capabilities) || body.capabilities.length === 0 || body.capabilities.length > 100) {
     return Response.json({ error: "capabilities_invalid" }, { status: 400 });
   }
@@ -52,6 +62,9 @@ export async function handleSessionCreate(request: Request, env: Env): Promise<R
     }
     if (grants.some((grant) => grant.name === candidate.name)) return Response.json({ error: "capability_duplicate" }, { status: 400 });
     grants.push({ name: candidate.name, effect: candidate.effect });
+  }
+  if (codemode && (appId !== "echo-codemode" || grants.length !== 1 || grants[0]?.name !== "page.evaluate" || grants[0].effect !== "mutation")) {
+    return Response.json({ error: "codemode_grant_invalid" }, { status: 400 });
   }
   let parsed: URL;
   try { parsed = new URL(body.origin); }

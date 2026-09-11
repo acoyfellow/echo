@@ -13,13 +13,13 @@ const env = {
   ASSETS: { fetch: async () => new Response("not found", { status: 404 }) },
 } as unknown as Env;
 
-function request(originHeader?: string, bodyOrigin = "https://notes.example", capabilities: unknown = [{ name: "readState", effect: "read" }, { name: "setDraft", effect: "mutation" }]): Request {
+function request(originHeader?: string, bodyOrigin = "https://notes.example", capabilities: unknown = [{ name: "readState", effect: "read" }, { name: "setDraft", effect: "mutation" }], mode?: string, appId = "notes"): Request {
   const headers = new Headers({ "content-type": "application/json" });
   if (originHeader) headers.set("origin", originHeader);
   return new Request("https://echo.example/sessions", {
     method: "POST",
     headers,
-    body: JSON.stringify({ origin: bodyOrigin, appId: "notes", capabilities }),
+    body: JSON.stringify({ origin: bodyOrigin, appId, capabilities, mode }),
   });
 }
 
@@ -54,6 +54,20 @@ describe("page session grants", () => {
       { name: "setDraft", effect: "mutation" },
     ]);
     expect(mcp?.grants).toEqual(page?.grants);
+  });
+
+  test("allows only the full page grant from a Chrome extension origin", async () => {
+    const extensionOrigin = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
+    const codemode = request(extensionOrigin, "https://notes.example", [{ name: "page.evaluate", effect: "mutation" }], "codemode", "echo-codemode");
+    const response = await handleSessionCreate(codemode, env);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe(extensionOrigin);
+    const session = await response.json() as { pageToken: string };
+    const page = await verifyCapability(secret, session.pageToken, "page");
+    expect(page?.origin).toBe("https://notes.example");
+    expect(page?.grants).toEqual([{ name: "page.evaluate", effect: "mutation" }]);
+    expect((await handleSessionCreate(request("https://notes.example", "https://notes.example", [{ name: "page.evaluate", effect: "mutation" }], "codemode", "echo-codemode"), env)).status).toBe(403);
+    expect((await handleSessionCreate(request(extensionOrigin, "https://notes.example", [{ name: "readState", effect: "read" }], "codemode", "echo-codemode"), env)).status).toBe(400);
   });
 
   test("rejects missing, duplicate, and malformed capability grants", async () => {
