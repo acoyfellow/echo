@@ -2,9 +2,9 @@
 
 **Let an agent use capabilities exposed by one user-approved live app tab.**
 
-Echo is a TypeScript client, a Chrome companion, and a Cloudflare Worker. It has two authority modes. An integrated app can expose a short list of named actions. Codemode can instead give an agent temporary full JavaScript access to one approved Chrome tab.
+Echo is a TypeScript client and Cloudflare Worker that lets an integrated app expose a short list of named actions through one temporary MCP URL.
 
-The app-defined mode does not need a browser extension. Full-page Codemode uses the Chrome companion and Chrome debugger API so generated JavaScript can run in the authenticated page’s main world.
+It uses standard browser JavaScript and does not need an extension, privileged automation channel, or new browser API. The app owns the capability list, approval action, and Stop control.
 
 > Status: `0.0.1`, public experiment at [echo.coey.dev](https://echo.coey.dev).
 
@@ -25,20 +25,6 @@ Playable examples:
 - `/examples/` holds the complete arcade and fourteen planned examples.
 
 Connect and Stop stay inside each example. They are never exposed as agent capabilities.
-
-## Try full-page Codemode
-
-Build the unpacked Chrome companion:
-
-```sh
-bun run build:extension
-```
-
-Open `chrome://extensions`, enable Developer mode, and load `extension/`. Start the local Worker, open the page you want to use, and choose Echo Codemode from the Chrome toolbar.
-
-Codemode’s approval is intentionally broad. The agent can read and change anything that page JavaScript can access, including DOM state, browser storage, hidden app state, and authenticated actions. Approval is limited to one tab, one origin, and ten minutes. Cross-origin navigation, expiry, closing the tab, or pressing **Stop and detach** revokes future access.
-
-Stopping cannot undo changes or listeners that already ran. A page or debugger error after dispatch is reported as `outcome_unknown`. A companion service worker restart fails closed and detaches the stored session. Reload the page when you need a clean page state. Chrome shows its debugging disclosure while Codemode is attached.
 
 ## Add Echo to an app
 
@@ -93,7 +79,7 @@ A mutation requires an `operationId`. Echo stores its result. A repeated operati
 
 Separate signed credentials connect the page and MCP client. Each credential binds one random session, app ID, origin, credential kind, and expiry. The Worker derives identity from the signed credential, not message text.
 
-App-defined mode does not expose:
+Echo does not expose:
 
 - cookies or session tokens
 - local or session storage
@@ -105,8 +91,6 @@ App-defined mode does not expose:
 - native permission prompts
 - trusted keyboard or pointer input
 - Connect, approval, or Stop controls
-
-Codemode deliberately grants the first approved page full access to its own JavaScript, DOM, storage, selectors, and authenticated fetch. It still does not grant browser chrome, another tab or origin, native prompts, trusted input, or control of its external Stop button.
 
 Echo does not protect an app from its own same-origin JavaScript or XSS. The app remains responsible for each capability and its data-sharing policy.
 
@@ -129,7 +113,7 @@ bun run verify:extension-free
 
 The checked receipts name the exact browser versions. Browser state and screenshots are captured by an independent test referee. Echo's own response is not enough to pass.
 
-App-defined browser evidence lives under `receipts/extension-free/`. Full-page Chrome evidence lives under `receipts/codemode/`. Production browser evidence lives under `receipts/production/`.
+Cross-browser evidence lives under `receipts/extension-free/`. Production browser evidence lives under `receipts/production/`.
 
 ## Current limits
 
@@ -138,14 +122,12 @@ App-defined browser evidence lives under `receipts/extension-free/`. Full-page C
 - Programmatic page actions are not trusted user input.
 - The current demo uses one active page connection per session.
 - Cross-browser protocol receipts use a local loopback Worker; the production receipt verifies the deployed demo separately.
-- Codemode through Worker Loader is not implemented yet.
 
 ## Repository layout
 
 ```text
 client/       in-page Echo client
 examples/     hydrated Svelte example apps and catalog
-extension/    trusted Chrome Codemode companion
 src/          Hono Worker, Svelte UI, MCP, credentials, and Durable Object
 e2e/          independent browser referees
 receipts/     redacted browser evidence
