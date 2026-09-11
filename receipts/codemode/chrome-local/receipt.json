@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "ed283d407c681f626c5faea3fd268c7e0fbf14e8",
+  "sourceCommit": "5820ae251a008ea71d50c13fcee2fa60a6756b90",
   "status": "passed",
   "claim": "Echo Codemode grants full JavaScript authority to one explicitly approved Chrome tab and revokes it from trusted extension UI.",
   "environment": {
