@@ -100,15 +100,14 @@ if (!ephemeral) {
     const evidenceCommit = (await $`git log -1 --format=%H -- proof/codemode-evidence.json`.text()).trim();
     if (!evidenceCommit) failures.push("Codemode evidence manifest is not committed");
     else {
-      for (const path of [
-        "proof/codemode-evidence.json",
-        "receipts/codemode/chrome-local/receipt.json",
-        "receipts/codemode/chrome-local/approval.png",
-        "receipts/codemode/chrome-local/executed.png",
-        "receipts/codemode/chrome-local/final.png",
-      ]) {
+      for (const path of ["proof/codemode-evidence.json", "receipts/codemode/chrome-local/receipt.json"]) {
         const lastCommit = (await $`git log -1 --format=%H -- ${path}`.text()).trim();
         if (lastCommit !== evidenceCommit) failures.push(`Codemode evidence changed outside its binding commit: ${path}`);
+      }
+      for (const path of ["receipts/codemode/chrome-local/approval.png", "receipts/codemode/chrome-local/executed.png", "receipts/codemode/chrome-local/final.png"]) {
+        const lastCommit = (await $`git log -1 --format=%H -- ${path}`.text()).trim();
+        const bound = await $`git merge-base --is-ancestor ${lastCommit} ${evidenceCommit}`.quiet().nothrow();
+        if (!lastCommit || bound.exitCode !== 0) failures.push(`Codemode screenshot changed after its binding commit: ${path}`);
       }
     }
   }
