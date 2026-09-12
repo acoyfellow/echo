@@ -65,7 +65,9 @@ async function evaluate<Value>(expression: string): Promise<Value> {
 }
 async function waitFor(expression: string) {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    if (await evaluate(expression)) return;
+    try {
+      if (await evaluate(expression)) return;
+    } catch {}
     await Bun.sleep(100);
   }
   throw new Error(`examples_wait_failed:${expression}`);
