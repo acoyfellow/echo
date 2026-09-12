@@ -8,6 +8,7 @@ const routes = [
   ["/examples/", "Sixteen apps with real agent tools."],
   ["/examples/todo/", "Tiny todo"],
   ["/examples/notes/", "Quarterly notes"],
+  ["/spike/owner-cut/", "Your app already has the tools."],
 ] as const;
 for (const [path, text] of routes) {
   const response = await fetch(`${base}${path}`);
@@ -124,7 +125,11 @@ try {
   await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelectorAll('section[aria-labelledby=\"more-title\"] a').length === 14");
   const examplesResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 2 && document.querySelectorAll('main a[href^=\"/examples/\"]').length === 16");
   if (!examplesResponsive) throw new Error("examples_mobile_overflow");
-  console.log("PASS: Svelte SSR, hydration, responsive home and examples, real Echo MCP mutation, live activity wire, and Stop");
+  await cdp("Page.navigate", { url: `${base}/spike/owner-cut/` });
+  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true'");
+  const spikeResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth");
+  if (!spikeResponsive) throw new Error("owner_cut_mobile_overflow");
+  console.log("PASS: Svelte SSR, hydration, responsive home, examples, and owner cut, real Echo MCP mutation, live activity wire, and Stop");
 } finally {
   socket.close();
   chrome.kill();

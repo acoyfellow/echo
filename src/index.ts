@@ -13,6 +13,7 @@ import Notes from "../examples/notes/App.svelte";
 import Todo from "../examples/todo/App.svelte";
 import Examples from "./ui/Examples.svelte";
 import Home from "./ui/Home.svelte";
+import OwnerCut from "./ui/OwnerCut.svelte";
 
 export { EchoAgent } from "./agent";
 
@@ -23,6 +24,7 @@ const head = (path: string) => `<link rel="stylesheet" href="/site.css"><link re
 
 app.get("/", svelteRenderer(Home, { hydrateAs: "home", title: "Echo — wire an agent into your web app", head: head("/"), props: {} }));
 app.get("/examples", svelteRenderer(Examples, { hydrateAs: "examples", title: "Echo examples — little apps for agents", head: head("/examples/"), props: {} }));
+app.get("/spike/owner-cut", svelteRenderer(OwnerCut, { hydrateAs: "ownerCut", title: "Echo owner cut — alternate homepage", head: head("/spike/owner-cut/"), props: {} }));
 app.get("/examples/todo", svelteRenderer(Todo, { hydrateAs: "todo", title: "Tiny Todo — Echo example", head: head("/examples/todo/"), props: {} }));
 app.get("/examples/notes", svelteRenderer(Notes, { hydrateAs: "notes", title: "Live Notes — Echo example", head: head("/examples/notes/"), props: {} }));
 for (const example of catalogExamples.slice(2)) {
