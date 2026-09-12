@@ -1,8 +1,18 @@
 {
-  "sha": "97f13d24b143d9136af5807600a7b7aee1016eab",
+  "sha": "128bfb3d506b25b6ed15b9f4d5f8b4bbb5664759",
   "verdict": "ship",
   "mustFix": 0,
-  "reviewer": "terrarium:ter_20260911232125594_qsb8hm",
+  "reviewer": "independent security/product reviewer ter_20260912110247381_ar4ksw",
+  "verifiedAt": "2026-09-12T11:03:39.281Z",
   "findings": [],
-  "verifiedAt": "2026-09-11T23:24:08.000Z"
+  "verified": [
+    "Prior HTTP-origin documentation mismatch is fixed",
+    "Session and MCP endpoints enforce one Codemode app and page.evaluate grant",
+    "Todo target has no Echo integration",
+    "Only homepage and demo remain public product routes",
+    "Exact-tab, exact-origin, Stop, expiry, restart, uncertain-outcome, and redaction claims match code and evidence"
+  ],
+  "nonBlocking": [
+    "The popup can list non-loopback HTTP tabs that the broker will reject during approval"
+  ]
 }
