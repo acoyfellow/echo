@@ -13,6 +13,7 @@ const result = await Bun.build({
   target: "browser",
   format: "esm",
   minify: true,
+  define: { "process.env.ECHO_WORKER_BASE": JSON.stringify(process.env.ECHO_WORKER_BASE ?? "https://echo.coey.dev") },
 });
 if (!result.success) {
   for (const log of result.logs) console.error(log);

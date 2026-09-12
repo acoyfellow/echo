@@ -17,7 +17,7 @@ type SocketMessage = {
   input?: unknown;
 };
 
-const workerBase = "http://127.0.0.1:8870";
+const workerBase = process.env.ECHO_WORKER_BASE ?? "https://echo.coey.dev";
 const debuggerVersion = "1.3";
 const expiryAlarm = "echo-codemode-expiry";
 let state: SessionState | null = null;

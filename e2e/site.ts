@@ -3,17 +3,14 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 const base = process.env.ECHO_E2E_ORIGIN ?? "http://127.0.0.1:8870";
-const routes = [
-  ["/", "Your app already knows what to do."],
-  ["/examples/", "Sixteen apps with real agent tools."],
-  ["/examples/todo/", "Tiny todo"],
-  ["/examples/notes/", "Quarterly notes"],
-  ["/spike/owner-cut/", "Turn your app’s functions into agent tools."],
-] as const;
-for (const [path, text] of routes) {
+for (const [path, text] of [["/", "Give your agent a live tab."], ["/demo/", "Codemode target"]] as const) {
   const response = await fetch(`${base}${path}`);
   const html = await response.text();
   if (!response.ok || !html.includes(text) || !html.includes("/__svelte/")) throw new Error(`ssr_failed:${path}`);
+}
+for (const path of ["/examples/", "/examples/todo/", "/spike/owner-cut/"]) {
+  const response = await fetch(`${base}${path}`);
+  if (response.status !== 404) throw new Error(`removed_route_alive:${path}:${response.status}`);
 }
 
 const cached = await readdir(join(homedir(), "Library", "Caches", "ms-playwright")).catch(() => []);
@@ -65,73 +62,29 @@ async function evaluate<Value>(expression: string): Promise<Value> {
 }
 async function waitFor(expression: string): Promise<void> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    try {
-      if (await evaluate(expression)) return;
-    } catch {}
+    try { if (await evaluate(expression)) return; } catch {}
     await Bun.sleep(100);
   }
   throw new Error(`site_wait_failed:${expression}`);
-}
-async function verifyCodePanel(label: string) {
-  const valid = await evaluate<boolean>(`(() => {
-    const panel = document.querySelector('#hero-code');
-    const lines = [...panel.children];
-    const indented = lines.find((line) => line.textContent.startsWith('appId')); 
-    const spacers = lines.filter((line) => line.classList.contains('h-3'));
-    return panel.scrollHeight <= panel.clientHeight
-      && panel.scrollWidth <= panel.clientWidth
-      && !!indented
-      && getComputedStyle(indented).whiteSpace === 'pre'
-      && parseFloat(getComputedStyle(indented).paddingLeft) > 0
-      && spacers.length === 3
-      && spacers.every((spacer) => spacer.getBoundingClientRect().height > 0);
-  })()`);
-  if (!valid) throw new Error(`site_code_panel_overflow:${label}`);
-}
-
-async function tool(endpoint: string, id: number, name: string, input: unknown, operationId?: string) {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "echo_call_capability", arguments: { name, input, ...(operationId ? { operationId } : {}) } } }),
-  });
-  return response.json() as Promise<{ result?: { structuredContent?: { ok?: boolean; error?: string; result?: unknown } } }>;
 }
 
 try {
   await cdp("Runtime.enable");
   await cdp("Page.enable");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')");
-  await verifyCodePanel("desktop");
-  await waitFor("document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')?.contentDocument?.querySelector('#connect')");
-  await evaluate("frames[0].document.querySelector('#connect').click(); true");
-  await waitFor("frames[0].document.querySelector('#status')?.textContent === 'Agent connected'");
-  const endpoint = await evaluate<string>("frames[0].document.querySelector('#session').textContent");
-  const listed = await tool(endpoint, 1, "listTodos", {});
-  if (!listed.result?.structuredContent?.ok) throw new Error("site_echo_list_failed");
-  const text = `Hydrated through Echo ${Date.now()}`;
-  const added = await tool(endpoint, 2, "addTodo", { text }, crypto.randomUUID());
-  if (!added.result?.structuredContent?.ok) throw new Error("site_echo_add_failed");
-  await waitFor(`frames[0].document.body.textContent.includes(${JSON.stringify(text)}) && document.body.textContent.includes('AGENT LINE OPEN')`);
-  await waitFor("document.body.textContent.includes('ADDTODO · FINISHED · THIS CAME THROUGH ECHO')");
+  await waitFor("document.documentElement.dataset.hydrated === 'true'");
+  const desktop = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && document.querySelector('#hero-code').scrollWidth <= document.querySelector('#hero-code').clientWidth");
+  if (!desktop) throw new Error("home_desktop_overflow");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await verifyCodePanel("mobile");
-  const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth");
-  if (!responsive) throw new Error("site_mobile_overflow");
-  await evaluate("frames[0].document.querySelector('#stop').click(); true");
-  await waitFor("document.body.textContent.includes('SESSION CLOSED · the wire is cut')");
-  const afterStop = await tool(endpoint, 3, "listTodos", {});
-  if (afterStop.result?.structuredContent?.error !== "session_closed") throw new Error("site_stop_failed");
-  await cdp("Page.navigate", { url: `${base}/examples/` });
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelectorAll('section[aria-labelledby=\"more-title\"] a').length === 14");
-  const examplesResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 2 && document.querySelectorAll('main a[href^=\"/examples/\"]').length === 16");
-  if (!examplesResponsive) throw new Error("examples_mobile_overflow");
-  await cdp("Page.navigate", { url: `${base}/spike/owner-cut/` });
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true'");
-  const spikeResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth");
-  if (!spikeResponsive) throw new Error("owner_cut_mobile_overflow");
-  console.log("PASS: Svelte SSR, hydration, responsive home, examples, and owner cut, real Echo MCP mutation, live activity wire, and Stop");
+  const mobile = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth");
+  if (!mobile) throw new Error("home_mobile_overflow");
+  await cdp("Page.navigate", { url: `${base}/demo/` });
+  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelector('#draft')?.value === 'Initial draft'");
+  await evaluate("document.querySelector('#draft').value='Added by the browser referee';document.querySelector('#draft').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('form').requestSubmit();true");
+  await waitFor("document.body.textContent.includes('Added by the browser referee')");
+  const demoMobile = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('#todos li').length === 4");
+  if (!demoMobile) throw new Error("demo_mobile_failed");
+  console.log("PASS: one Codemode homepage and one Todo target SSR, hydrate, work, fit mobile, and removed routes return 404");
 } finally {
   socket.close();
   chrome.kill();

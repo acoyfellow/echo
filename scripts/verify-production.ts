@@ -18,23 +18,27 @@ try {
 
   const landing = await read("/");
   if (landing.response.status !== 200) failures.push(`landing returned ${landing.response.status}`);
-  for (const text of ["Your app already knows what to do.", "A live web app becomes an MCP server.", "Little apps. Strange powers."]) {
+  for (const text of ["Give your agent a live tab.", "The agent gets the page’s authority.", "Let the agent finish the Todo."]) {
     if (!landing.text.includes(text)) failures.push(`landing is missing: ${text}`);
   }
   for (const stale of ["WebMCP over MCP", "webmcp_list_tools", "Echo extension →"]) {
     if (landing.text.includes(stale)) failures.push(`landing contains stale copy: ${stale}`);
   }
 
-  const demo = await read("/examples/todo/");
-  if (demo.response.status !== 200 || !demo.text.includes("Tiny todo") || !demo.text.includes("Connect an agent") || !demo.text.includes("Stop")) failures.push("production Todo example is unavailable");
+  const demo = await read("/demo/");
+  if (demo.response.status !== 200 || !demo.text.includes("Codemode target") || !demo.text.includes("Initial draft") || !demo.text.includes("Stop")) failures.push("production Codemode Todo target is unavailable");
+  for (const path of ["/examples/", "/spike/owner-cut/"]) {
+    if ((await read(path)).response.status !== 404) failures.push(`removed route is still live: ${path}`);
+  }
 
   const unauthorized = await fetch(`${origin}/sessions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       origin: "https://wrong-origin.example",
-      appId: "echo-notes-demo",
-      capabilities: [{ name: "readState", effect: "read" }],
+      appId: "echo-codemode",
+      capabilities: [{ name: "page.evaluate", effect: "mutation" }],
+      mode: "codemode",
     }),
   });
   if (unauthorized.status !== 403) failures.push(`wrong-origin session mint returned ${unauthorized.status}`);

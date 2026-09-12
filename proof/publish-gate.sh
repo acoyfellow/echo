@@ -21,5 +21,5 @@ bun install --frozen-lockfile >/dev/null
 bun run build:demo
 bun run typecheck
 bun test
-bun run verify:extension-free
+bun run e2e:codemode:check
 printf 'ECHO_PUBLISH_OK:%s\n' "$sha"

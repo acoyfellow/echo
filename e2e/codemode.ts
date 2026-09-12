@@ -142,7 +142,7 @@ async function mcpCall(endpoint: string, id: number, code: string, operationId: 
       jsonrpc: "2.0",
       id,
       method: "tools/call",
-      params: { name: "echo_call_capability", arguments: { name: "page.evaluate", input: { code }, operationId } },
+      params: { name: "page_evaluate", arguments: { code, operationId } },
     }),
   });
   const body = await response.json() as { result?: { structuredContent?: { ok?: boolean; error?: string; result?: unknown } } };
@@ -150,7 +150,8 @@ async function mcpCall(endpoint: string, id: number, code: string, operationId: 
 }
 
 try {
-  await Bun.$`bun run build:extension`.quiet();
+  const extensionBuild = Bun.spawnSync(["bun", "run", "build:extension"], { env: { ...process.env, ECHO_WORKER_BASE: base }, stdout: "ignore", stderr: "inherit" });
+  if (extensionBuild.exitCode !== 0) throw new Error("extension_build_failed");
   const initialTargets = await targets();
   const approvedTarget = initialTargets.find((target) => target.type === "page" && target.url.startsWith(`${base}/demo/`));
   if (!approvedTarget) throw new Error("approved_target_missing");

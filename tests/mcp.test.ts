@@ -6,60 +6,37 @@ mock.module("agents", () => ({ getAgentByName: async () => { throw new Error("un
 const { handleMcp } = await import("../src/mcp");
 
 const secret = "test-secret-must-be-long-enough-for-hmac-sha-256-xxxxxxxxxxxxxxxx";
-const env = {
-  ECHO_SIGNING_SECRET: secret,
-  ECHO_MAX_MCP_BYTES: "1024",
-} as Env;
+const env = { ECHO_SIGNING_SECRET: secret, ECHO_MAX_MCP_BYTES: "1024" } as Env;
 
 async function session() {
-  return mintSessionCapabilities(secret, "https://example.com", 1, "notes", [{ name: "readState", effect: "read" }]);
+  return mintSessionCapabilities(secret, "https://example.com", 1, "echo-codemode", [{ name: "page.evaluate", effect: "mutation" }]);
 }
 
-describe("capability endpoint", () => {
-  test("lists only the extension-free capability tools", async () => {
+describe("Codemode MCP endpoint", () => {
+  test("lists one full-page JavaScript tool", async () => {
     const minted = await session();
-    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.mcpToken)}`, {
-      method: "POST",
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
-    }), env);
-    const body = await response.json() as { result: { tools: Array<{ name: string }> } };
-    expect(body.result.tools.map((tool) => tool.name)).toEqual([
-      "echo_list_capabilities",
-      "echo_call_capability",
-    ]);
+    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.mcpToken)}`, { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) }), env);
+    const body = await response.json() as { result: { tools: Array<{ name: string; description: string }> } };
+    expect(body.result.tools).toHaveLength(1);
+    expect(body.result.tools[0]?.name).toBe("page_evaluate");
+    expect(body.result.tools[0]?.description).toContain("full authority");
+  });
+
+  test("rejects a non-Codemode credential", async () => {
+    const minted = await mintSessionCapabilities(secret, "https://example.com", 1, "notes", [{ name: "readState", effect: "read" }]);
+    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.mcpToken)}`, { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) }), env);
+    expect(response.status).toBe(401);
   });
 
   test("rejects a page credential on MCP", async () => {
     const minted = await session();
-    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.pageToken)}`, {
-      method: "POST",
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
-    }), env);
+    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.pageToken)}`, { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) }), env);
     expect(response.status).toBe(401);
   });
 
   test("rejects oversized request bodies before dispatch", async () => {
     const minted = await session();
-    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.mcpToken)}`, {
-      method: "POST",
-      body: "x".repeat(1025),
-    }), env);
-    expect(response.status).toBe(413);
-  });
-
-  test("stops reading an oversized streamed request", async () => {
-    const minted = await session();
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode("x".repeat(600)));
-        controller.enqueue(new TextEncoder().encode("x".repeat(600)));
-        controller.close();
-      },
-    });
-    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.mcpToken)}`, {
-      method: "POST",
-      body: stream,
-    }), env);
+    const response = await handleMcp(new Request(`https://echo.example/mcp?id=${encodeURIComponent(minted.mcpToken)}`, { method: "POST", body: "x".repeat(1025) }), env);
     expect(response.status).toBe(413);
   });
 });

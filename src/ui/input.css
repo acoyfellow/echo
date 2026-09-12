@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @source "./**/*.svelte";
-@source "../../examples/**/*.ts";
 
 @theme {
   --color-ink: #080b0f;
@@ -20,23 +19,6 @@
   button, a { font: inherit; }
 }
 
-@keyframes wire-packet {
-  0% { top: 10%; opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { top: 90%; opacity: 0; }
-}
-
-@keyframes arcade-drift {
-  to { transform: translateX(-42%); }
-}
-
-.code-lines > span { white-space: pre; }
-.wire-packet-active { animation: wire-packet .85s ease-in-out infinite; }
-.arcade-drift { animation: arcade-drift 48s linear infinite; }
-.arcade-drift:hover { animation-play-state: paused; }
-
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .wire-packet-active, .arcade-drift { animation: none; }
 }

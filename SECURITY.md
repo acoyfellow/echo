@@ -1,23 +1,29 @@
 # Security
 
-Echo is an experimental `0.0.1` project.
+Echo is experimental `0.0.1` software. Do not use it for sensitive production work without reviewing the implementation and operating your own broker.
 
-Do not report security problems in a public GitHub issue. Use GitHub's private vulnerability reporting for `acoyfellow/echo`.
+Report vulnerabilities through GitHub's private vulnerability reporting for `acoyfellow/echo`, not a public issue.
 
-## Boundary
+## Authority
 
-Echo has two intentionally different authority modes.
+Echo Codemode gives generated JavaScript the approved page's main-world authority. It can read and modify the DOM, browser storage available to that origin, hidden application state, and authenticated actions available to page JavaScript.
 
-App-defined mode gives an agent only the capabilities an integrated app registers for one page session. The app must protect its origin and choose what each capability may read or change.
+This is one broad permission. Echo does not isolate those powers from one another and does not protect an app from its own same-origin JavaScript or XSS.
 
-Full-page Codemode gives generated JavaScript the approved page’s main-world authority. It can read and modify the DOM, browser storage available to that origin, hidden application state, and authenticated actions available to page JavaScript. This is one broad permission; Echo does not claim to isolate those powers from one another.
+## Approval and revocation
 
-Codemode approval is bound to one Chrome tab, one origin, and a short expiry. Cross-origin navigation, tab close, expiry, or trusted extension Stop detaches the debugger and revokes the session. A service worker restart also fails closed and detaches any stored session before accepting another command. Stop prevents future execution but cannot undo page changes, requests, or listeners that already ran.
+The trusted Chrome companion binds approval to one tab, one origin, and a short expiry. Cross-origin navigation, tab closure, expiry, companion Stop, and companion service-worker restart revoke future execution and detach Chrome's debugger.
 
-Codemode does not grant another tab, another origin, browser chrome, local files, native prompts, or trusted user input. The Chrome debugger permission displays Chrome’s own debugging disclosure while attached.
+Stop cannot undo page changes, requests, listeners, storage writes, or other effects that already completed. Same-origin navigation retains authority until Stop or expiry. Chrome shows its own debugger disclosure while attached.
 
-Every mutation requires an operation ID. A repeated completed operation returns its stored result. A page exception or debugger failure after dispatch is recorded as `outcome_unknown`, because effects may already have happened, and is not retried automatically. Codemode receipts store a hash and status, not generated source, session credentials, or result values.
+Codemode does not grant another tab, another origin, browser chrome, local files, native permission prompts, or trusted keyboard or pointer input.
+
+## Operations and receipts
+
+Every execution requires an operation ID. A repeated completed operation returns its stored result. A page exception or debugger failure after dispatch becomes `outcome_unknown`; Echo does not retry it automatically because effects may already have happened.
+
+Receipts store the approved origin, code hash, timing, and outcome. They do not store generated source, session credentials, or result values.
 
 ## Deployment
 
-Use a long random signing secret. Limit session lifetime. Put private deployments behind Cloudflare Access. Never store session credentials in receipts or logs.
+Use a long random signing secret, limit session lifetime, rotate compromised secrets, and put private deployments behind access controls. Session URLs are bearer credentials: anyone who obtains an active URL can use its authority until revocation or expiry.
