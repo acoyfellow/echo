@@ -8,7 +8,7 @@ const routes = [
   ["/examples/", "Sixteen apps with real agent tools."],
   ["/examples/todo/", "Tiny todo"],
   ["/examples/notes/", "Quarterly notes"],
-  ["/spike/owner-cut/", "Your app already has the tools."],
+  ["/spike/owner-cut/", "Turn your app’s functions into agent tools."],
 ] as const;
 for (const [path, text] of routes) {
   const response = await fetch(`${base}${path}`);
