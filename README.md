@@ -26,7 +26,7 @@ In Chrome:
 3. Choose **Load unpacked**.
 4. Select this repository's `extension/` directory.
 
-The built companion uses the hosted broker at `https://echo.coey.dev`. It works with any HTTP or HTTPS page; the page does not install an SDK or add Echo-specific code.
+The built companion uses the hosted broker at `https://echo.coey.dev`. It works with HTTPS pages and loopback HTTP pages on `localhost` or `127.0.0.1`; the page does not install an SDK or add Echo-specific code.
 
 ## Use it
 

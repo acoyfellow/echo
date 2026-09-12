@@ -22,7 +22,7 @@ for (const path of ["/examples/", "/examples/todo/", "/spike/owner-cut/"]) {
 const sitemap = await fetch(`${origin}/sitemap.xml`).then((response) => response.text()).catch(() => "");
 if (!sitemap.includes("https://echo.coey.dev/demo/") || sitemap.includes("/examples/") || sitemap.includes("/spike/")) failures.push("sitemap is not consolidated");
 const readme = await Bun.file("README.md").text();
-for (const required of ["## Install", "page_evaluate", "Load unpacked", "one exact tab", "Stop does not undo"]) {
+for (const required of ["## Install", "page_evaluate", "Load unpacked", "HTTPS pages and loopback HTTP pages", "one exact tab", "Stop does not undo"]) {
   if (!readme.includes(required)) failures.push(`README is missing: ${required}`);
 }
 for (const stale of ["createEcho", "sixteen playable", "app-defined mode", "echo_call_capability"]) {
