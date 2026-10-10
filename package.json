@@ -19,6 +19,7 @@
     "e2e:chrome": "bun e2e/chrome.ts",
     "e2e:safari": "bun e2e/safari.ts",
     "e2e:site": "bun scripts/check-site-e2e.ts",
+    "e2e:whiteboard": "bun e2e/whiteboard.ts",
     "e2e:examples": "bun scripts/check-examples-e2e.ts",
     "verify:extension-free": "bun scripts/verify-extension-free.ts",
     "verify:production": "bun scripts/verify-production.ts",

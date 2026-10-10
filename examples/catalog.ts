@@ -31,6 +31,17 @@ export const examples: EchoExample[] = [
     color: "#71b8d8",
   },
   {
+    slug: "whiteboard",
+    name: "Whiteboard",
+    emoji: "▭",
+    description:
+      "Several agents draw on one board at once. Each signs its cards; you drag them around.",
+    prompt: "Two of you: one sketch the architecture, the other annotate it.",
+    tools: ["read board", "add card", "connect cards", "move card", "delete card"],
+    live: true,
+    color: "#2f5d8a",
+  },
+  {
     slug: "tiny-dungeon",
     name: "Tiny Dungeon",
     emoji: "⚔",

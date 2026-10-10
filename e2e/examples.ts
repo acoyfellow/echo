@@ -9,6 +9,8 @@ const namesFor = (slug: string, tools: string[]) => {
 
   if (slug === "notes") return ["readState", "setDraft", "uncertainMutation"];
 
+  if (slug === "whiteboard") return ["readBoard"];
+
   return tools.map((tool) => tool.replace(/\s+(.)/g, (_, letter: string) => letter.toUpperCase()));
 };
 
@@ -86,7 +88,7 @@ try {
   }
 
   console.log(
-    "PASS: all 16 examples SSR, hydrate, expose live Echo tools, stop, wrap footer navigation, and fit mobile",
+    "PASS: all 17 examples SSR, hydrate, expose live Echo tools, stop, wrap footer navigation, and fit mobile",
   );
 } finally {
   await browser.close();

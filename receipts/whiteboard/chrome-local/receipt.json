@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "claim": "Two agents draw on one whiteboard concurrently through one Echo session; the page serializes their edits and Stop ends both.",
+  "environment": {
+    "browser": "Chrome/154.0.8037.98",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "origin": "http://127.0.0.1:8870"
+  },
+  "transport": {
+    "extension": false,
+    "sandbox": "Worker Loader",
+    "referee": "Chrome DevTools Protocol"
+  },
+  "checks": {
+    "bothScriptsSucceeded": true,
+    "eachAgentDrewThreeCards": true,
+    "cardIdsUnique": true,
+    "eachAgentDrewItsOwnChain": true,
+    "crossAgentArrowLanded": true,
+    "everyArrowRendered": true,
+    "legendListsBothAgents": true,
+    "bothCursorsVisible": true,
+    "agentViewMatchesDom": true,
+    "stopEndsEveryAgent": true,
+    "stopClearsCursors": true,
+    "boardSurvivesStop": true
+  },
+  "observations": {
+    "ada": {
+      "ok": true,
+      "result": {
+        "ids": [
+          "s1",
+          "s3",
+          "s5"
+        ]
+      },
+      "calls": [
+        {
+          "capability": "addCard",
+          "operationId": "run:ada-1:0",
+          "ok": true
+        },
+        {
+          "capability": "addCard",
+          "operationId": "run:ada-1:1",
+          "ok": true
+        },
+        {
+          "capability": "addCard",
+          "operationId": "run:ada-1:2",
+          "ok": true
+        },
+        {
+          "capability": "connectCards",
+          "operationId": "run:ada-1:3",
+          "ok": true
+        },
+        {
+          "capability": "connectCards",
+          "operationId": "run:ada-1:4",
+          "ok": true
+        }
+      ]
+    },
+    "grace": {
+      "ok": true,
+      "result": {
+        "ids": [
+          "s2",
+          "s4",
+          "s6"
+        ]
+      },
+      "calls": [
+        {
+          "capability": "addCard",
+          "operationId": "run:grace-1:0",
+          "ok": true
+        },
+        {
+          "capability": "addCard",
+          "operationId": "run:grace-1:1",
+          "ok": true
+        },
+        {
+          "capability": "addCard",
+          "operationId": "run:grace-1:2",
+          "ok": true
+        },
+        {
+          "capability": "connectCards",
+          "operationId": "run:grace-1:3",
+          "ok": true
+        },
+        {
+          "capability": "connectCards",
+          "operationId": "run:grace-1:4",
+          "ok": true
+        }
+      ]
+    },
+    "crossArrow": {
+      "ok": true,
+      "result": {
+        "id": "a5",
+        "from": "s6",
+        "to": "s3",
+        "author": "grace"
+      }
+    },
+    "referee": {
+      "cards": [
+        {
+          "id": "s1",
+          "author": "ada",
+          "text": "browser"
+        },
+        {
+          "id": "s2",
+          "author": "grace",
+          "text": "page"
+        },
+        {
+          "id": "s3",
+          "author": "ada",
+          "text": "worker"
+        },
+        {
+          "id": "s4",
+          "author": "grace",
+          "text": "sandbox"
+        },
+        {
+          "id": "s5",
+          "author": "ada",
+          "text": "durable object"
+        },
+        {
+          "id": "s6",
+          "author": "grace",
+          "text": "agent"
+        }
+      ],
+      "arrows": [
+        {
+          "id": "a1",
+          "author": "ada",
+          "d": "M110 110 L260 110"
+        },
+        {
+          "id": "a2",
+          "author": "grace",
+          "d": "M110 390 L260 390"
+        },
+        {
+          "id": "a3",
+          "author": "ada",
+          "d": "M330 110 L480 110"
+        },
+        {
+          "id": "a4",
+          "author": "grace",
+          "d": "M330 390 L480 390"
+        },
+        {
+          "id": "a5",
+          "author": "grace",
+          "d": "M550 390 L353.57142857142856 140"
+        }
+      ],
+      "cursors": [
+        "ada",
+        "grace"
+      ],
+      "legend": [
+        "you",
+        "ada",
+        "grace"
+      ]
+    },
+    "afterStop": {
+      "cards": [
+        {
+          "id": "s1",
+          "author": "ada",
+          "text": "browser"
+        },
+        {
+          "id": "s2",
+          "author": "grace",
+          "text": "page"
+        },
+        {
+          "id": "s3",
+          "author": "ada",
+          "text": "worker"
+        },
+        {
+          "id": "s4",
+          "author": "grace",
+          "text": "sandbox"
+        },
+        {
+          "id": "s5",
+          "author": "ada",
+          "text": "durable object"
+        },
+        {
+          "id": "s6",
+          "author": "grace",
+          "text": "agent"
+        }
+      ],
+      "arrows": [
+        {
+          "id": "a1",
+          "author": "ada",
+          "d": "M110 110 L260 110"
+        },
+        {
+          "id": "a2",
+          "author": "grace",
+          "d": "M110 390 L260 390"
+        },
+        {
+          "id": "a3",
+          "author": "ada",
+          "d": "M330 110 L480 110"
+        },
+        {
+          "id": "a4",
+          "author": "grace",
+          "d": "M330 390 L480 390"
+        },
+        {
+          "id": "a5",
+          "author": "grace",
+          "d": "M550 390 L353.57142857142856 140"
+        }
+      ],
+      "cursors": [],
+      "legend": [
+        "you",
+        "ada",
+        "grace"
+      ]
+    }
+  },
+  "independentEvidence": [
+    "Chrome DOM read by the referee",
+    "receipts/whiteboard/chrome-local/board.png"
+  ],
+  "redactions": [
+    "MCP session credential"
+  ]
+}

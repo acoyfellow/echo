@@ -17,6 +17,7 @@ const components = {
   examples: "./ui/Examples.svelte",
   todo: "../examples/todo/App.svelte",
   notes: "../examples/notes/App.svelte",
+  whiteboard: "../examples/whiteboard/App.svelte",
   arcade: "../examples/ArcadeApp.svelte",
 };
 

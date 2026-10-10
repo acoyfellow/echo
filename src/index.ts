@@ -11,6 +11,7 @@ import ArcadeApp from "../examples/ArcadeApp.svelte";
 import { examples as catalogExamples } from "../examples/catalog";
 import Notes from "../examples/notes/App.svelte";
 import Todo from "../examples/todo/App.svelte";
+import Whiteboard from "../examples/whiteboard/App.svelte";
 import Examples from "./ui/Examples.svelte";
 import Home from "./ui/Home.svelte";
 
@@ -94,7 +95,17 @@ app.get(
   }),
 );
 
-for (const example of catalogExamples.slice(2)) {
+app.get(
+  "/examples/whiteboard",
+  svelteRenderer(Whiteboard, {
+    hydrateAs: "whiteboard",
+    title: "Whiteboard — Echo example",
+    head: head("/examples/whiteboard/"),
+    props: {},
+  }),
+);
+
+for (const example of catalogExamples.slice(3)) {
   app.get(
     `/examples/${example.slug}`,
     svelteRenderer(ArcadeApp, {

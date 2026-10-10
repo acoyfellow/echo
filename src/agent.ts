@@ -31,6 +31,8 @@ type PendingCall = {
   resolve: (result: WebMcpResult) => void;
 };
 
+const MAX_WAITING_CALLS = 16;
+
 export class EchoAgent extends Agent<Env, SessionState> {
   initialState: SessionState = {
     origin: "",
@@ -41,6 +43,8 @@ export class EchoAgent extends Agent<Env, SessionState> {
     operations: {},
   };
   #pending = new Map<string, PendingCall>();
+  #queue: Promise<void> = Promise.resolve();
+  #waiting = 0;
 
   async onConnect(connection: Connection, context: ConnectionContext): Promise<void> {
     const url = new URL(context.request.url);
@@ -162,7 +166,24 @@ export class EchoAgent extends Agent<Env, SessionState> {
 
     if (!this.state.origin) return { ok: false, error: "session_unbound" };
 
-    if (this.#pending.size > 0) return { ok: false, error: "session_busy" };
+    if (this.#waiting >= MAX_WAITING_CALLS) return { ok: false, error: "session_busy" };
+    this.#waiting += 1;
+    const turn = this.#queue.then(() => this.#sendToTab(message, timeoutMs));
+
+    this.#queue = turn.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    try {
+      return await turn;
+    } finally {
+      this.#waiting -= 1;
+    }
+  }
+
+  async #sendToTab(message: TabRequest, timeoutMs: number): Promise<WebMcpResult> {
+    if (this.state.revoked) return { ok: false, error: "session_revoked" };
     const connection = [...this.getConnections()].find((candidate) => candidate.readyState === 1);
 
     if (!connection) return { ok: false, error: "session_closed" };

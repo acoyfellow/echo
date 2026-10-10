@@ -4,8 +4,8 @@ import { callCapability, launchChrome, waitFor } from "./cdp";
 const base = process.env.ECHO_E2E_ORIGIN ?? "http://127.0.0.1:8870";
 
 const routes = [
-  ["/", "Echo lets an agent use the functions your web app already has."],
-  ["/examples/", "Sixteen small apps with Echo added."],
+  ["/", "Let agents use your web app."],
+  ["/examples/", "small apps with Echo added."],
   ["/examples/todo/", "an ordinary app with Echo added"],
   ["/examples/notes/", "Quarterly notes"],
 ] as const;
@@ -52,7 +52,7 @@ try {
   await verifyCodeBlocks("desktop");
 
   const homeLinks = await evaluate(
-    "document.querySelectorAll('a[href=\"/examples/\"]').length >= 2 && document.querySelectorAll('section[aria-labelledby=\"examples-title\"] li a').length === 6 && document.querySelectorAll('img[src^=\"/icons/cf-\"]').length === 4",
+    "document.querySelectorAll('a[href=\"/examples/\"]').length >= 2 && document.querySelectorAll('section[aria-labelledby=\"examples-title\"] li a').length === 6 && document.querySelectorAll('img[src^=\"/icons/cf-\"]').length === 4 && !!document.querySelector('.hero .stage svg') && document.querySelectorAll('#comparison tbody tr').length === 7 && document.querySelectorAll('#compare-title ~ ul > li').length === 7 && [...document.querySelectorAll('#comparison tbody tr')].every((row) => row.querySelector('td').dataset.support === 'yes')",
     z.boolean(),
   );
 
@@ -106,7 +106,7 @@ try {
   );
 
   const examplesResponsive = await evaluate(
-    "document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 2 && document.querySelectorAll('main a[href^=\"/examples/\"]').length === 16",
+    "document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 3 && document.querySelectorAll('main a[href^=\"/examples/\"]').length === 34 && document.querySelectorAll('ul[aria-label=\"All examples\"] a').length === 17",
     z.boolean(),
   );
 
