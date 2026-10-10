@@ -10,7 +10,11 @@ mkdirSync("./generated", { recursive: true });
 
 const components = {
   home: "./ui/Home.svelte",
-  demo: "./ui/Demo.svelte",
+  examples: "./ui/Examples.svelte",
+  ownerCut: "./ui/OwnerCut.svelte",
+  todo: "../examples/todo/App.svelte",
+  notes: "../examples/notes/App.svelte",
+  arcade: "../examples/ArcadeApp.svelte",
 };
 
 await buildHonoSvelteClientArtifacts({

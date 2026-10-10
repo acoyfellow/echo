@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "claim": "An agent composes many app capabilities in one echo_run script against a real Chrome tab, with no extension.",
+  "environment": {
+    "browser": "Chrome/154.0.8037.98",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "origin": "http://127.0.0.1:8870"
+  },
+  "transport": {
+    "extension": false,
+    "productCdp": false,
+    "sandbox": "Worker Loader, globalOutbound null",
+    "referee": "Chrome DevTools Protocol"
+  },
+  "checks": {
+    "describeListsTodoTools": true,
+    "runSucceeded": true,
+    "runComposedEveryCall": true,
+    "runResultMatches": true,
+    "refereeSeesSixTodos": true,
+    "refereeSeesOldTodosCompleted": true,
+    "replayRefused": true,
+    "sandboxHasNoNetwork": true,
+    "stopEndsRuns": true
+  },
+  "observations": {
+    "run": {
+      "ok": true,
+      "result": {
+        "before": 3,
+        "after": 6,
+        "open": [
+          "Ship Codemode",
+          "Delete the extension",
+          "Tell people"
+        ]
+      },
+      "calls": [
+        {
+          "capability": "listTodos",
+          "operationId": "run:e2e-1:0",
+          "ok": true
+        },
+        {
+          "capability": "setCompleted",
+          "operationId": "run:e2e-1:1",
+          "ok": true
+        },
+        {
+          "capability": "setCompleted",
+          "operationId": "run:e2e-1:2",
+          "ok": true
+        },
+        {
+          "capability": "addTodo",
+          "operationId": "run:e2e-1:3",
+          "ok": true
+        },
+        {
+          "capability": "addTodo",
+          "operationId": "run:e2e-1:4",
+          "ok": true
+        },
+        {
+          "capability": "addTodo",
+          "operationId": "run:e2e-1:5",
+          "ok": true
+        },
+        {
+          "capability": "listTodos",
+          "operationId": "run:e2e-1:6",
+          "ok": true
+        }
+      ]
+    },
+    "replay": {
+      "ok": false,
+      "error": "run_id_reused",
+      "calls": [
+        {
+          "capability": "listTodos",
+          "operationId": "run:e2e-1:0",
+          "ok": true
+        },
+        {
+          "capability": "setCompleted",
+          "operationId": "run:e2e-1:1",
+          "ok": true
+        },
+        {
+          "capability": "setCompleted",
+          "operationId": "run:e2e-1:2",
+          "ok": true
+        },
+        {
+          "capability": "addTodo",
+          "operationId": "run:e2e-1:3",
+          "ok": true
+        },
+        {
+          "capability": "addTodo",
+          "operationId": "run:e2e-1:4",
+          "ok": true
+        },
+        {
+          "capability": "addTodo",
+          "operationId": "run:e2e-1:5",
+          "ok": true
+        },
+        {
+          "capability": "listTodos",
+          "operationId": "run:e2e-1:6",
+          "ok": true
+        }
+      ]
+    },
+    "sandboxed": {
+      "ok": false,
+      "error": "This worker is not permitted to access the internet via global functions like fetch(). It must use capabilities (such as bindings in 'env') to talk to the outside world.",
+      "calls": []
+    },
+    "afterStop": {
+      "ok": false,
+      "error": "listTodos: session_closed",
+      "calls": [
+        {
+          "capability": "listTodos",
+          "operationId": "run:e2e-after-stop:0",
+          "ok": false,
+          "error": "session_closed"
+        }
+      ]
+    },
+    "referee": {
+      "texts": [
+        "Add Echo to the app",
+        "Connect an agent",
+        "Let it finish this list",
+        "Ship Codemode",
+        "Delete the extension",
+        "Tell people"
+      ],
+      "completed": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "independentEvidence": [
+    "Chrome DOM values read by the E2E referee",
+    "receipts/codemode-run/chrome-local/stopped.png"
+  ],
+  "redactions": [
+    "MCP session credential",
+    "Worker signing secret"
+  ],
+  "limitations": [
+    "CDP is used by the independent test referee to press Connect and Stop and to read the DOM, not by Echo.",
+    "The Worker runs locally on loopback."
+  ]
+}

@@ -11,5 +11,5 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["src/codemode.ts"]
+  "include": ["client/**/*.ts", "examples/**/*.ts"]
 }

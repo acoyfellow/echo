@@ -20,6 +20,9 @@
       { "name": "ECHO_AGENT", "class_name": "EchoAgent" }
     ]
   },
+  "worker_loaders": [
+    { "binding": "LOADER" }
+  ],
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["EchoAgent"] }
   ],

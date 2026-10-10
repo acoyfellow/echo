@@ -1,116 +1,157 @@
 # Echo
 
-**Give an MCP agent temporary JavaScript access to one live Chrome tab.**
+**Let an agent use capabilities exposed by one user-approved live app tab.**
 
-Echo is experimental AX infrastructure. A trusted browser companion lets a person approve one tab, copy a temporary MCP URL, and stop the session outside the page.
+Echo is a TypeScript client and Cloudflare Worker that lets an integrated app expose a short list of named actions through one temporary MCP URL.
 
-The agent receives one tool: `page_evaluate`. It can inspect and change anything JavaScript in the approved page can reach, including DOM state, origin storage, hidden application state, and authenticated requests.
+It uses standard browser JavaScript and does not need an extension, privileged automation channel, or new browser API. The app owns the capability list, approval action, and Stop control.
 
-> Status: `0.0.1` at [echo.coey.dev](https://echo.coey.dev).
+> Status: `0.0.1`, public experiment at [echo.coey.dev](https://echo.coey.dev).
 
-## Install
-
-Prerequisites: Chrome and Bun.
+## Try the local examples
 
 ```sh
-git clone https://github.com/acoyfellow/echo.git
-cd echo
-bun install --frozen-lockfile
-bun run build:extension
-```
-
-In Chrome:
-
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Choose **Load unpacked**.
-4. Select this repository's `extension/` directory.
-
-The built companion uses the hosted broker at `https://echo.coey.dev`. It works with HTTPS pages and loopback HTTP pages on `localhost` or `127.0.0.1`; the page does not install an SDK or add Echo-specific code.
-
-## Use it
-
-1. Open the app tab the agent should operate.
-2. Open **Echo Codemode** from Chrome's extension menu.
-3. Read the full-page warning and choose the exact tab.
-4. Select **Allow selected tab for 10 minutes**.
-5. Copy the agent connection and add that URL as an MCP server in your agent.
-6. Press **Stop and detach** when finished.
-
-Try the single local target:
-
-```sh
+bun install
 cp .dev.vars.example .dev.vars
 bun run dev
 ```
 
-Open `http://127.0.0.1:8870/demo/`.
+Open `http://127.0.0.1:8870/`. The homepage is a live Svelte workbench with source on one side and the hydrated Todo example on the other.
 
-## Agent interface
+Playable examples:
 
-The MCP server exposes one tool:
+- `/examples/todo/` exposes list, add, complete, and delete capabilities.
+- `/examples/notes/` exposes read, draft update, and uncertainty-test capabilities.
+- `/examples/` links all sixteen playable apps in catalog order, with Previous, All examples, and Next navigation in every app.
 
-```json
-{
-  "name": "page_evaluate",
-  "arguments": {
-    "code": "document.title",
-    "operationId": "read-title-1"
-  }
-}
-```
+Connect and Stop stay inside each example. They are never exposed as agent capabilities.
 
-`code` runs in the approved page's main JavaScript world. An operation ID is required. Completed operations deduplicate. If an exception or debugger failure occurs after dispatch, Echo reports `outcome_unknown` because effects may already have happened.
+## Add Echo to an app
 
-## Authority boundary
-
-Approval binds one random session to:
-
-- one Chrome extension identity
-- one exact tab
-- one exact page origin
-- one short expiry
-
-Cross-origin navigation, tab closure, expiry, companion restart, and trusted Stop revoke future execution. Stop does not undo requests, listeners, storage writes, or other effects already completed.
-
-Codemode does not grant access to another tab, another origin, browser chrome, local files, native permission prompts, or trusted keyboard and pointer input. Chrome displays its own debugging disclosure while Echo is attached.
-
-Echo does not sandbox powers within the approved page. Same-origin JavaScript and XSS already share that page authority.
-
-Read [SECURITY.md](SECURITY.md) before using Echo with sensitive data.
-
-## Self-host the broker
-
-Set a signing secret and deploy the Worker on your own Cloudflare account:
+Install directly from GitHub:
 
 ```sh
-export CLOUDFLARE_ACCOUNT_ID=your-account-id
-bun run setup:secret
-bunx wrangler deploy
-ECHO_WORKER_BASE=https://your-worker.example bun run build:extension
+npm install github:acoyfellow/echo
 ```
 
-Reload the unpacked extension after rebuilding it.
+```ts
+import { createEcho } from '@acoyfellow/echo';
+
+const echo = createEcho({
+  workerBase: 'https://your-echo-worker.example',
+  appId: 'notes',
+});
+
+echo.register({
+  readState: {
+    description: 'Read the current document',
+    effect: 'read',
+    inputSchema: { type: 'object' },
+    run: () => readCurrentDocument(),
+  },
+  setDraft: {
+    description: 'Replace the current draft',
+    effect: 'mutation',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+    run: ({ text }, { operationId }) => saveDraft(text, operationId),
+  },
+});
+
+const session = await echo.connect();
+```
+
+Call `echo.connect()` only from a clear user action. Show the requested capabilities before that action. Keep `echo.stop()` in a visible human-controlled button.
+
+## Agent tools
+
+Echo exposes four MCP tools. Start with the first two.
+
+- `echo_describe` returns TypeScript declarations for the `app` object.
+- `echo_run` runs one async JavaScript function body. Inside it, each registered capability is `await app.<name>(input)`.
+- `echo_list_capabilities` and `echo_call_capability` make one call at a time.
+
+One `echo_run` can do work that would otherwise take many tool calls:
+
+```js
+const todos = await app.listTodos({});
+for (const todo of todos) if (!todo.completed) await app.setCompleted({ id: todo.id, completed: true });
+await app.addTodo({ text: 'Plan the next release' });
+return app.listTodos({});
+```
+
+The script runs in a Cloudflare Dynamic Worker with no network access. Its only binding is the session's registered capabilities. It cannot reach the page's DOM, storage, cookies, or `fetch`. A run may make at most 100 capability calls. Each run takes a `runId`, and every call inside it gets the operation ID `run:<runId>:<n>`. Reusing a `runId` returns the earlier calls and does not run the script again.
+
+A direct mutation through `echo_call_capability` requires an `operationId`. Echo stores its result. A repeated operation ID returns the stored result instead of running the mutation again. If the tab disconnects after dispatch and before a result, Echo returns `outcome_unknown`. It does not retry the mutation.
+
+## Security boundary
+
+Separate signed credentials connect the page and MCP client. Each credential binds one random session, app ID, origin, credential kind, and expiry. The Worker derives identity from the signed credential, not message text.
+
+Echo does not expose:
+
+- cookies or session tokens
+- local or session storage
+- arbitrary page JavaScript (`echo_run` code runs in a sandbox on the Worker, not in the page)
+- arbitrary selectors
+- browser fetch
+- browser chrome
+- navigation to another origin
+- native permission prompts
+- trusted keyboard or pointer input
+- Connect, approval, or Stop controls
+
+Echo does not protect an app from its own same-origin JavaScript or XSS. The app remains responsible for each capability and its data-sharing policy.
 
 ## Verify it
+
+Start the local Worker first:
+
+```sh
+bun run dev
+```
+
+Then run:
 
 ```sh
 bun run typecheck
 bun test
-bun run e2e:site
-bun run e2e:codemode:check
-bun run test:codemode-tamper
+bun run e2e:codemode
+bun run e2e:safari
+bun run verify:extension-free
 ```
 
-The Codemode referee launches real Chrome with the companion installed and proves exact-tab isolation, execution, trusted Stop, cross-origin navigation revocation, expiry, companion-restart revocation, uncertain outcomes, and redacted receipts.
+The checked receipts name the exact browser versions. Browser state and screenshots are captured by an independent test referee. Echo's own response is not enough to pass.
+
+Codemode evidence lives under `receipts/codemode-run/`. Cross-browser evidence lives under `receipts/extension-free/`. Production browser evidence lives under `receipts/production/`.
+
+## Current limits
+
+- Only apps that add the Echo client can use it.
+- A normal page cannot control browser chrome or other origins.
+- Programmatic page actions are not trusted user input.
+- The current demo uses one active page connection per session.
+- Cross-browser protocol receipts use a local loopback Worker; the production receipt verifies the deployed demo separately.
 
 ## Repository layout
 
 ```text
-extension/   trusted Chrome approval and execution boundary
-src/         Hono Worker, MCP transport, session credentials, and site
-e2e/         independent Chrome referees
-receipts/    redacted, hash-bound browser evidence
+client/       in-page Echo client
+examples/     hydrated Svelte example apps and catalog
+src/          Hono Worker, Svelte UI, MCP, Codemode sandbox, credentials, and Durable Object
+e2e/          independent browser referees
+receipts/     redacted browser evidence
+```
+
+## Check the current code
+
+```sh
+bun run typecheck
+bun test
+bun run build:site
 ```
 
 ## License

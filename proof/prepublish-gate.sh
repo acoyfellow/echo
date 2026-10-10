@@ -2,11 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 bun install --frozen-lockfile
-bun run build:site
+bun run build:demo
 bun run typecheck
 bun test
-bun run e2e:codemode:check
-bun run test:codemode-tamper
+bun run verify:extension-free
 git diff --check
 if command -v gitleaks >/dev/null 2>&1; then gitleaks git --no-banner --redact; fi
 if command -v guardrail >/dev/null 2>&1; then guardrail lockfile .; guardrail lint .; fi

@@ -1,5 +1,6 @@
-import { Agent, type Connection, type ConnectionContext, unstable_callable } from "agents";
+import { Agent, type Connection, type ConnectionContext, callable } from "agents";
 import { verifyCapability, type CapabilityGrant } from "./auth";
+import type { CodemodeCall } from "./codemode-source";
 import type { Env, WebMcpResult } from "./types";
 
 export type OperationReceipt = {
@@ -108,12 +109,21 @@ export class EchoAgent extends Agent<Env, SessionState> {
     ]);
   }
 
-  @unstable_callable({ description: "List capabilities in the bound tab." })
+  @callable({ description: "List capabilities in the bound tab." })
   async listCapabilities(workerToken: string): Promise<WebMcpResult> {
     return this.#requestTab(workerToken, { type: "capability_list" });
   }
 
-  @unstable_callable({ description: "Call one capability in the bound tab." })
+  @callable({ description: "List the capability calls recorded under one operation prefix." })
+  async listOperations(workerToken: string, prefix: string): Promise<CodemodeCall[]> {
+    if (await this.#workerAuthorizationError(workerToken)) return [];
+    return Object.values(this.state.operations)
+      .filter((receipt) => receipt.operationId.startsWith(`${prefix}:`))
+      .sort((left, right) => Number(left.operationId.slice(prefix.length + 1)) - Number(right.operationId.slice(prefix.length + 1)))
+      .map((receipt) => ({ capability: receipt.capability, operationId: receipt.operationId, ok: receipt.result?.ok ?? false, error: receipt.result?.error ?? (receipt.status === "completed" ? undefined : receipt.status) }));
+  }
+
+  @callable({ description: "Call one capability in the bound tab." })
   async callCapability(workerToken: string, name: string, input: unknown, operationId?: string): Promise<WebMcpResult> {
     const grant = this.state.grants.find((candidate) => candidate.name === name);
     if (!grant) return { ok: false, error: "capability_not_granted" };

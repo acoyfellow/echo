@@ -1,35 +1,144 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  onMount(() => { document.documentElement.dataset.hydrated = "true"; });
+  import { examples } from "../../examples/catalog";
+
+  let frame: HTMLIFrameElement;
+  let connected = $state(false);
+  let activeTool = $state("");
+  let activityStatus = $state("");
+  let receipt = $state("WAITING · connect the app, copy its MCP URL, then let your agent call a tool");
+  let clearHighlight: ReturnType<typeof setTimeout> | undefined;
+
+  onMount(() => {
+    document.documentElement.dataset.hydrated = "true";
+    const receive = (event: MessageEvent) => {
+      if (event.origin !== location.origin || event.source !== frame.contentWindow || event.data?.source !== "echo-example") return;
+      if (event.data.type === "connected") {
+        connected = true;
+        receipt = "CONNECTED · waiting for the first real tool call";
+      }
+      if (event.data.type === "activity") {
+        activeTool = event.data.capability;
+        activityStatus = event.data.status;
+        receipt = `${event.data.capability.toUpperCase()} · ${event.data.status.toUpperCase()} · THIS CAME THROUGH ECHO`;
+        if (clearHighlight) clearTimeout(clearHighlight);
+        if (event.data.status !== "started") clearHighlight = setTimeout(() => activeTool = "", 1800);
+      }
+      if (event.data.type === "stopped") {
+        connected = false;
+        activeTool = "";
+        activityStatus = "";
+        receipt = "SESSION CLOSED · the wire is cut";
+      }
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  });
 </script>
 
+{#snippet mark(kind: "yes" | "no" | "varies", label: string)}
+  <span class="inline-flex items-center gap-2 font-medium" class:text-signal={kind === "yes"} class:text-danger={kind === "no"} class:text-amber={kind === "varies"}>
+    {#if kind === "yes"}<svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    {:else if kind === "no"}<svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    {:else}<svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>{/if}
+    <span class="text-paper">{label}</span>
+  </span>
+{/snippet}
+
 <svelte:head>
-  <meta name="description" content="Give an agent temporary JavaScript access to one live Chrome tab." />
-  <meta property="og:title" content="Echo — a live browser tab for your agent" />
-  <meta property="og:description" content="Approve one tab. Copy one MCP URL. Stop from trusted browser UI." />
+  <meta name="description" content="Turn functions in your web app into tools for one user-approved agent session." />
+  <meta property="og:title" content="Echo — wire an agent into your web app" />
+  <meta property="og:description" content="Turn functions in your web app into tools for one user-approved agent session." />
   <meta property="og:image" content="https://echo.coey.dev/og.svg" />
+  <meta property="og:url" content="https://echo.coey.dev/" />
 </svelte:head>
 
-<main class="min-h-svh bg-ink text-paper">
-  <nav class="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-5"><a href="/" class="text-xl font-semibold tracking-[-.03em] no-underline">echo</a><div class="flex gap-5 text-sm text-muted"><a href="/demo/">Todo</a><a href="https://github.com/acoyfellow/echo">Source</a></div></nav>
+<main>
+  <section class="relative min-h-svh bg-[radial-gradient(circle_at_50%_0,rgba(255,122,24,.14),transparent_35rem),linear-gradient(rgba(118,199,240,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(118,199,240,.025)_1px,transparent_1px)] bg-[size:auto,28px_28px,28px_28px] p-4 lg:p-5">
+    <nav class="relative z-10 mx-auto flex h-14 max-w-[1400px] items-center justify-between">
+      <a class="text-xl font-semibold tracking-[-.03em] text-paper no-underline" href="/">echo</a>
+      <div class="flex gap-5 text-xs text-muted"><a href="/examples/">the arcade</a><a href="https://github.com/acoyfellow/echo">source</a></div>
+    </nav>
 
-  <section class="mx-auto grid min-h-[calc(100svh-4rem)] max-w-[1120px] items-center gap-14 px-5 py-16 lg:grid-cols-[1.05fr_.95fr]">
-    <header><p class="font-mono text-xs uppercase tracking-[.16em] text-amber">AX, not browser automation</p><h1 class="my-5 text-[clamp(4rem,9vw,7.5rem)] font-semibold leading-[.84] tracking-[-.065em]">Give your agent a live tab.</h1><p class="max-w-xl text-xl leading-8 text-muted">Echo gives an MCP agent temporary JavaScript access to one Chrome tab you approve. It can work with the page you are already signed into. You keep Stop.</p><div class="mt-9 flex flex-wrap gap-3"><a href="/demo/" class="rounded-lg bg-echo px-5 py-3 font-semibold text-black no-underline">Open the Todo target</a><a href="https://github.com/acoyfellow/echo#install" class="rounded-lg border border-white/20 px-5 py-3 font-semibold text-paper no-underline">Install the companion</a></div></header>
+    <header class="relative z-10 mx-auto mb-8 mt-7 max-w-[1160px]">
+      <p class="text-sm font-medium text-amber">The casing is off</p>
+      <h1 class="my-4 max-w-[1000px] text-[clamp(3rem,7vw,5.9rem)] font-semibold leading-[.96] tracking-[-.045em]">Your app already knows what to do. <span class="text-echo">Give those functions to an agent.</span></h1>
+      <p class="max-w-2xl text-[clamp(1.05rem,2vw,1.35rem)] leading-[1.55] text-muted">One live tab. Only the functions you name. Watch a real agent call travel from your code into the app.</p>
+    </header>
 
-    <div class="overflow-hidden rounded-2xl border border-white/15 bg-[#0c1219] shadow-2xl"><div class="flex items-center justify-between border-b border-white/10 px-5 py-4 text-xs text-muted"><span>ONE APPROVED TAB</span><span class="text-signal">10 MINUTES</span></div><div class="p-6 font-mono text-sm leading-7"><p class="m-0 text-[#cb8cff]">page.evaluate</p><pre id="hero-code" class="my-5 overflow-hidden whitespace-pre-wrap rounded-lg bg-[#070b0f] p-5 text-[#d8e5ee]"><code>const open = [...document.querySelectorAll(
-  '#todos li'
-)].filter(row =&gt; !row.querySelector(
-  'input[type=checkbox]'
-).checked);
+    <div class="relative z-[2] mx-auto grid w-full max-w-[1400px] grid-cols-1 items-stretch lg:grid-cols-[minmax(0,1fr)_78px_minmax(0,.9fr)]">
+      <article class="min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-[#0b1016]/95 shadow-2xl lg:rounded-r-none lg:[transform:perspective(1200px)_rotateY(1.4deg)] lg:[transform-origin:right]">
+        <div class="flex h-11 items-center justify-between border-b border-white/15 px-4 font-mono text-[11px] tracking-[.06em] text-muted"><span>YOUR CODE · todo.ts</span><b class="text-signal">● READY</b></div>
+        <div id="hero-code" class="code-lines m-0 h-[550px] overflow-hidden p-6 font-mono text-[clamp(11px,1vw,14px)] leading-[1.7] text-[#d8e5ee] lg:p-8"><span class="block"><span class="text-[#cb8cff]">import</span> &#123; <span class="text-[#82b9ff]">createEcho</span> &#125; <span class="text-[#cb8cff]">from</span> <span class="text-[#b9ef9a]">'@acoyfellow/echo'</span>;</span>
+<span class="block h-3" aria-hidden="true"></span>
+<span class="block"><span class="text-[#cb8cff]">const</span> echo = <span class="text-[#82b9ff]">createEcho</span>(&#123;</span>
+<span class="block pl-[2ch]"><span class="text-amber">appId</span>: <span class="text-[#b9ef9a]">'tiny-todo'</span>,</span>
+<span class="block pl-[2ch]"><span class="text-amber">workerBase</span>: location.origin,</span>
+<span class="block">&#125;);</span>
+<span class="block h-3" aria-hidden="true"></span>
+<span class="block">echo.<span class="text-[#82b9ff]">register</span>(&#123;</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'listTodos' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">listTodos</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'read'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'addTodo' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">addTodo</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'setCompleted' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">setCompleted</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
+<span class={`block border-l-2 pl-[2ch] transition ${activeTool === 'deleteTodo' ? 'border-echo bg-echo/10' : 'border-transparent'}`}><span class="text-amber">deleteTodo</span>: &#123; <span class="text-amber">effect</span>: <span class="text-[#b9ef9a]">'mutation'</span>, … &#125;,</span>
+<span class="block">&#125;);</span>
+<span class="block h-3" aria-hidden="true"></span>
+<span class="block">connectButton.onclick = () =&gt; echo.<span class="text-[#82b9ff]">connect</span>();</span></div>
+      </article>
 
-open[0]?.querySelector('input').click();</code></pre><div class="grid gap-2 text-xs text-muted"><span><b class="text-signal">BOUND</b> exact tab + exact origin</span><span><b class="text-amber">REVOKED</b> Stop + navigation + expiry</span><span><b class="text-danger">BROAD</b> everything page JavaScript can reach</span></div></div></div>
+      <div class="relative grid h-14 place-items-center lg:h-auto">
+        <div class="absolute inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-echo to-transparent lg:inset-y-0 lg:left-1/2 lg:h-auto lg:w-[3px] lg:-translate-x-1/2 lg:bg-gradient-to-b"></div>
+        <div class="relative z-10 grid size-12 place-items-center rounded-full border border-echo bg-ink text-lg font-bold text-echo shadow-[0_0_28px_rgba(255,122,24,.24)]">↯</div>
+        <div class:wire-packet-active={activityStatus === 'started'} class="absolute left-1/2 top-[10%] size-3 -translate-x-1/2 rounded-full bg-white opacity-0 shadow-[0_0_8px_white,0_0_24px_#ff7a18,0_0_48px_#ff7a18]"></div>
+      </div>
+
+      <article class="min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-[#0b1016]/95 shadow-2xl lg:rounded-l-none lg:[transform:perspective(1200px)_rotateY(-1.4deg)] lg:[transform-origin:left]">
+        <div class="flex h-11 items-center justify-between border-b border-white/15 px-4 font-mono text-[11px] tracking-[.06em] text-muted"><span>YOUR APP · LIVE SVELTE</span><b class:text-signal={connected}>{connected ? '● AGENT LINE OPEN' : '● HUMAN ONLY'}</b></div>
+        <iframe bind:this={frame} class="block h-[610px] w-full border-0 bg-[#0b1118] lg:h-[550px]" src="/examples/todo/" title="Echo tiny todo" allow="clipboard-write"></iframe>
+      </article>
+    </div>
+
+    <div class="relative z-10 mx-auto mt-5 grid max-w-[1160px] gap-4 rounded-lg border border-white/15 bg-[#080c11] px-4 py-3 font-mono text-[11px] text-muted md:grid-cols-[1fr_auto]"><div><strong class:text-danger={receipt.startsWith('SESSION')} class="text-signal">{receipt.split(' · ')[0]}</strong>{receipt.includes(' · ') ? ` · ${receipt.split(' · ').slice(1).join(' · ')}` : ''}</div><div class="text-danger">STOP LIVES INSIDE THE APP</div></div>
   </section>
 
-  <section class="border-y border-white/15 bg-[#0b1016] px-5 py-24"><div class="mx-auto max-w-[1120px]"><header class="max-w-3xl"><p class="font-mono text-xs uppercase tracking-[.16em] text-amber">One honest permission</p><h2 class="my-4 text-[clamp(2.8rem,6vw,5rem)] font-semibold leading-[.95] tracking-[-.05em]">The agent gets the page’s authority.</h2><p class="text-lg leading-8 text-muted">That includes the DOM, browser storage for this origin, hidden JavaScript state, and authenticated requests the page can make. Echo does not pretend those powers are isolated from one another.</p></header><div class="mt-12 grid gap-px bg-white/15 md:grid-cols-3"><article class="bg-[#0b1016] p-6"><strong>Approve outside the page</strong><p class="mb-0 mt-3 text-sm leading-6 text-muted">A trusted Chrome companion selects the exact tab and shows Chrome’s debugger disclosure.</p></article><article class="bg-[#0b1016] p-6"><strong>Fail closed</strong><p class="mb-0 mt-3 text-sm leading-6 text-muted">Cross-origin navigation, expiry, tab closure, companion restart, and Stop end the session.</p></article><article class="bg-[#0b1016] p-6"><strong>Do not promise undo</strong><p class="mb-0 mt-3 text-sm leading-6 text-muted">Stop blocks future code. Requests and mutations already completed remain completed.</p></article></div></div></section>
+  <section class="grid min-h-[72svh] place-items-center bg-[radial-gradient(circle,rgba(255,122,24,.12),transparent_33rem)] px-5 py-24 text-center"><div><p class="text-sm font-medium text-amber">No second act</p><h2 class="m-0 max-w-[950px] text-[clamp(3.1rem,9vw,7.5rem)] font-semibold leading-[.94] tracking-[-.05em]">That was the whole product.</h2><p class="mx-auto mt-7 max-w-xl text-xl leading-8 text-muted">A function in your app became a tool in your agent. Its result appeared in the same tab. The app kept the Stop button.</p><pre class="mx-auto mt-8 w-fit rounded-lg border border-white/15 bg-[#080c11] px-6 py-4 text-left font-mono text-signal"><code>npm i github:acoyfellow/echo</code></pre><a class="mt-5 inline-block text-echo" href="https://github.com/acoyfellow/echo#add-echo-to-an-app">See the complete integration →</a></div></section>
 
-  <section class="px-5 py-24"><div class="mx-auto grid max-w-[1120px] gap-12 lg:grid-cols-[.8fr_1.2fr]"><header><p class="font-mono text-xs uppercase tracking-[.16em] text-amber">Install</p><h2 class="my-4 text-5xl font-semibold leading-none tracking-[-.05em]">From clone to agent in five steps.</h2></header><ol class="m-0 list-none p-0">{#each ['Clone Echo and run bun install','Build the Chrome companion','Load extension/ as an unpacked extension','Open the Todo target or your own app','Approve the tab and paste its MCP URL into your agent'] as step, index}<li class="grid grid-cols-[3rem_1fr] border-t border-white/15 py-4"><span class="font-mono text-muted">0{index + 1}</span><strong>{step}</strong></li>{/each}</ol></div></section>
+  <section class="border-t border-white/15 bg-[#090d12] px-5 py-24">
+    <div class="mx-auto grid max-w-[1160px] gap-10 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
+      <header><p class="text-sm font-medium text-amber">Codemode</p><h2 class="my-3 text-[clamp(2.6rem,6vw,4.6rem)] font-semibold leading-[1] tracking-[-.04em]">One script. Many calls.</h2><p class="text-lg leading-7 text-muted">Agents can send a whole program through <code class="text-paper">echo_run</code> instead of one tool call per step. It runs in a sandboxed Worker with no network. The only thing it can reach is your <code class="text-paper">app</code>.</p></header>
+      <pre class="code-lines m-0 overflow-x-auto rounded-2xl border border-white/15 bg-[#0b1016] p-6 font-mono text-[13px] leading-[1.7] text-[#d8e5ee]"><code><span class="block"><span class="text-[#cb8cff]">const</span> todos = <span class="text-[#cb8cff]">await</span> app.<span class="text-[#82b9ff]">listTodos</span>(&#123;&#125;);</span><span class="block"><span class="text-[#cb8cff]">for</span> (<span class="text-[#cb8cff]">const</span> todo <span class="text-[#cb8cff]">of</span> todos)</span><span class="block pl-[2ch]"><span class="text-[#cb8cff]">await</span> app.<span class="text-[#82b9ff]">setCompleted</span>(&#123; <span class="text-amber">id</span>: todo.id, <span class="text-amber">completed</span>: <span class="text-[#cb8cff]">true</span> &#125;);</span><span class="block"><span class="text-[#cb8cff]">await</span> app.<span class="text-[#82b9ff]">addTodo</span>(&#123; <span class="text-amber">text</span>: <span class="text-[#b9ef9a]">'Plan the next release'</span> &#125;);</span><span class="block"><span class="text-[#cb8cff]">return</span> app.<span class="text-[#82b9ff]">listTodos</span>(&#123;&#125;);</span></code></pre>
+    </div>
+  </section>
 
-  <section class="bg-[#0b1016] px-5 py-24"><div class="mx-auto max-w-[1120px]"><p class="font-mono text-xs uppercase tracking-[.16em] text-amber">One real target</p><div class="mt-4 grid gap-8 md:grid-cols-[1fr_auto] md:items-end"><div><h2 class="m-0 max-w-3xl text-[clamp(3rem,7vw,6rem)] font-semibold leading-[.9] tracking-[-.055em]">Let the agent finish the Todo.</h2><p class="mt-6 max-w-2xl text-lg leading-8 text-muted">The demo is an ordinary Svelte app with no Echo integration. Codemode changes it from outside the page through the temporary MCP connection.</p></div><a href="/demo/" class="rounded-lg bg-echo px-5 py-3 font-semibold text-black no-underline">Open Todo →</a></div></div></section>
+  <section class="border-y border-white/15 bg-[#0c1118] px-5 py-24">
+    <header class="mx-auto mb-10 max-w-[1160px]"><p class="text-sm font-medium text-amber">Built from the boring parts</p><h2 class="my-3 max-w-4xl text-[clamp(2.7rem,6vw,5rem)] font-semibold leading-[1] tracking-[-.04em]">A live web app becomes an MCP server.</h2><p class="max-w-3xl text-lg leading-7 text-muted">No DOM guessing. No browser flag. No privileged automation channel. Just named app functions behind one temporary URL.</p></header>
+    <div class="mx-auto max-w-[1160px] overflow-x-auto border-y border-white/15 bg-[#080c11]">
+      <table class="w-full min-w-[680px] border-collapse text-left text-sm">
+        <caption class="sr-only">Comparison of Echo, WebMCP, and external browser automation</caption>
+        <thead><tr class="border-b border-white/15 text-sm text-muted"><th class="sticky left-0 z-10 bg-[#080c11] p-5 font-medium">Capability</th><th class="p-5 font-semibold text-signal">Echo</th><th class="p-5 font-semibold text-paper">WebMCP</th><th class="p-5 font-semibold text-paper">Browser automation</th></tr></thead>
+        <tbody class="[&_td]:border-t [&_td]:border-white/10 [&_td]:p-5 [&_th]:border-t [&_th]:border-white/10 [&_th]:p-5">
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Semantic app functions</th><td>{@render mark('yes', 'Native')}</td><td>{@render mark('yes', 'Native')}</td><td>{@render mark('no', 'DOM or pixels')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">No new browser API required</th><td>{@render mark('yes', 'Yes')}</td><td>{@render mark('no', 'Required')}</td><td>{@render mark('yes', 'Yes')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">No extension or browser flag</th><td>{@render mark('yes', 'Yes')}</td><td>{@render mark('varies', 'Browser support')}</td><td>{@render mark('varies', 'Varies')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">One URL per app session</th><td>{@render mark('yes', 'Built in')}</td><td>{@render mark('varies', 'Implementation')}</td><td>{@render mark('no', 'External server')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">App-owned permission and Stop</th><td>{@render mark('yes', 'Built in')}</td><td>{@render mark('varies', 'Implementation')}</td><td>{@render mark('varies', 'Runner')}</td></tr>
+          <tr><th class="sticky left-0 z-10 bg-[#080c11] font-medium">Mutation identity and deduplication</th><td>{@render mark('yes', 'Built in')}</td><td>{@render mark('varies', 'Implementation')}</td><td>{@render mark('varies', 'Tool')}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mx-auto mt-4 max-w-[1160px] text-sm leading-6 text-muted">Echo uses standard web primitives on purpose. WebMCP and automation behavior varies by browser and implementation; the comparison describes their control models, not every tool carrying those labels.</p>
+  </section>
 
-  <footer class="mx-auto flex max-w-[1120px] flex-col justify-between gap-4 border-t border-white/15 px-5 py-8 text-sm text-muted sm:flex-row"><span>Echo 0.0.1 · experimental software</span><div class="flex gap-5"><a href="https://github.com/acoyfellow/echo/blob/main/SECURITY.md">Security boundary</a><a href="https://github.com/acoyfellow/echo/tree/main/receipts/codemode">Receipts</a></div></footer>
+  <section class="overflow-hidden border-t border-white/15 bg-[#090d12] py-24"><header class="mx-auto mb-10 w-[calc(100%_-_40px)] max-w-[1160px]"><p class="text-sm font-medium text-amber">Insert tokens</p><h2 class="my-3 max-w-4xl text-[clamp(2.8rem,7vw,5.2rem)] font-semibold leading-[1] tracking-[-.04em]">Little apps. Strange powers.</h2><p class="max-w-2xl text-lg leading-7 text-muted">Sixteen complete web apps are awake. Pick a cabinet, connect an agent, and keep scrolling through the arcade.</p></header>
+    <div class="arcade-drift flex w-max gap-4 px-5 pb-9">
+      {#each [...examples, ...examples.slice(0, 6)] as example}
+        <svelte:element this={example.live ? 'a' : 'article'} href={example.live ? `/examples/${example.slug}/` : undefined} style={`--accent:${example.color}`} class:opacity-65={!example.live} class="flex h-[390px] w-[285px] flex-col rounded-[18px_18px_9px_9px] border border-[color-mix(in_srgb,var(--accent)_45%,rgba(180,205,225,.15))] bg-[linear-gradient(150deg,color-mix(in_srgb,var(--accent)_12%,transparent),transparent_45%),#111821] p-6 text-paper no-underline shadow-2xl transition hover:-translate-y-2">
+          <span class="grid size-14 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-3xl text-[var(--accent)]">{example.emoji}</span>
+          <h3 class="mb-2 mt-6 text-2xl font-semibold tracking-[-.025em]">{example.name}</h3><p class="m-0 text-sm text-muted">{example.description}</p>
+          <div class="mt-5 font-mono text-[10px] uppercase leading-7 text-[var(--accent)]">{example.tools.join(' · ')}</div><b class="mt-auto font-mono text-[11px] uppercase tracking-[.13em] text-[var(--accent)]">{example.live ? 'Insert tokens →' : 'Dreaming'}</b>
+        </svelte:element>
+      {/each}
+    </div>
+    <footer class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1160px] justify-between border-t border-white/15 py-8 text-xs text-muted"><span>Echo 0.0.1 · the receipts are part of the product</span><a href="https://github.com/acoyfellow/echo/tree/main/receipts">Read the receipts</a></footer>
+  </section>
 </main>

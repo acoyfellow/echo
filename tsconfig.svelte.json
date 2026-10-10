@@ -10,5 +10,5 @@
     "checkJs": true,
     "skipLibCheck": true
   },
-  "include": ["src/ui/**/*.svelte"]
+  "include": ["src/ui/**/*.svelte", "examples/**/*.svelte", "client/**/*.ts", "examples/catalog.ts"]
 }

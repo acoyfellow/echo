@@ -1,29 +1,19 @@
 # Security
 
-Echo is experimental `0.0.1` software. Do not use it for sensitive production work without reviewing the implementation and operating your own broker.
+Echo is an experimental `0.0.1` project.
 
-Report vulnerabilities through GitHub's private vulnerability reporting for `acoyfellow/echo`, not a public issue.
+Do not report security problems in a public GitHub issue. Use GitHub's private vulnerability reporting for `acoyfellow/echo`.
 
-## Authority
+## Boundary
 
-Echo Codemode gives generated JavaScript the approved page's main-world authority. It can read and modify the DOM, browser storage available to that origin, hidden application state, and authenticated actions available to page JavaScript.
+Echo gives an agent only the capabilities an integrated app registers for one page session. The app must protect its origin and choose what each capability may read or change.
 
-This is one broad permission. Echo does not isolate those powers from one another and does not protect an app from its own same-origin JavaScript or XSS.
+`echo_run` code runs in a Cloudflare Dynamic Worker with `globalOutbound: null`. Its only binding forwards calls to the registered capabilities of its own session, through the same signed Worker credential, grant check, and operation receipts as `echo_call_capability`. It cannot reach the page, the network, other sessions, or the signing secret. A run is capped at 100 capability calls. Each call inside a run gets the operation ID `run:<runId>:<n>`, so a reused `runId` returns the recorded calls instead of running again.
 
-## Approval and revocation
+Every direct mutation requires an operation ID. A repeated completed operation returns its stored result. A disconnect after dispatch is recorded as `outcome_unknown`, because effects may already have happened, and is not retried automatically.
 
-The trusted Chrome companion binds approval to one tab, one origin, and a short expiry. Cross-origin navigation, tab closure, expiry, companion Stop, and companion service-worker restart revoke future execution and detach Chrome's debugger.
-
-Stop cannot undo page changes, requests, listeners, storage writes, or other effects that already completed. Same-origin navigation retains authority until Stop or expiry. Chrome shows its own debugger disclosure while attached.
-
-Codemode does not grant another tab, another origin, browser chrome, local files, native permission prompts, or trusted keyboard or pointer input.
-
-## Operations and receipts
-
-Every execution requires an operation ID. A repeated completed operation returns its stored result. A page exception or debugger failure after dispatch becomes `outcome_unknown`; Echo does not retry it automatically because effects may already have happened.
-
-Receipts store the approved origin, code hash, timing, and outcome. They do not store generated source, session credentials, or result values.
+Echo 0.0.1 previously shipped an optional Chrome companion with full-page Codemode. It is deprecated and removed. The Worker rejects session requests from extension origins.
 
 ## Deployment
 
-Use a long random signing secret, limit session lifetime, rotate compromised secrets, and put private deployments behind access controls. Session URLs are bearer credentials: anyone who obtains an active URL can use its authority until revocation or expiry.
+Use a long random signing secret. Limit session lifetime. Put private deployments behind Cloudflare Access. Never store session credentials in receipts or logs.

@@ -8,7 +8,6 @@ build/
 *.log
 *.tsbuildinfo
 .DS_Store
-extension/dist/
 public/echo-demo.js
 public/site.css
 src/bundles.generated.ts

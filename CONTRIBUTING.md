@@ -1,14 +1,13 @@
 # Contributing
 
-Echo is an early Codemode experiment. Open an issue before proposing a large change.
+Echo is an early experiment. Open an issue before proposing a large change.
 
 ## Set up
 
 ```sh
-bun install --frozen-lockfile
+bun install
 cp .dev.vars.example .dev.vars
 bun run dev
-ECHO_WORKER_BASE=http://127.0.0.1:8870 bun run build:extension
 ```
 
 Use a random local `ECHO_SIGNING_SECRET`. Do not commit `.dev.vars`.
@@ -16,13 +15,12 @@ Use a random local `ECHO_SIGNING_SECRET`. Do not commit `.dev.vars`.
 ## Check a change
 
 ```sh
+bun run build:demo
 bun run typecheck
 bun test
-bun run e2e:site
-bun run e2e:codemode:check
-bun run test:codemode-tamper
+bun run verify:extension-free
 ```
 
-Browser receipts must name the exact browser version, record independently observed page state, and exclude credentials, generated code, and result values.
+Browser receipts must name the exact browser version, record visible page state, and exclude credentials and private data. Echo's own response is not enough evidence.
 
-Keep the authority model explicit: one broad page permission, one selected tab, one origin, one expiry, and trusted Stop. Do not imply that Stop undoes completed effects or that Echo isolates DOM, storage, hidden state, and authenticated requests within the approved page.
+Keep the public API small. Do not add arbitrary JavaScript, selectors, cookie access, storage access, browser fetch, cross-origin navigation, browser chrome control, or automation for Connect and Stop.

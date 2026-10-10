@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "lib": ["ES2023", "DOM"],
-    "types": ["chrome", "bun-types"],
-    "noEmit": true
-  },
-  "include": ["extension/**/*.ts", "scripts/build-extension.ts"]
-}
