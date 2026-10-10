@@ -1,12 +1,17 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { z } from "zod";
 import { forwardMcpRequest, validateSessionUrl } from "../scripts/pi-mcp-proxy";
+
+const rpcBody = z.object({ id: z.number().optional(), method: z.string().optional() });
 
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
     if (new URL(request.url).pathname !== "/mcp") return new Response("missing", { status: 404 });
-    const body = await request.json() as { id?: number; method?: string };
+    const body = rpcBody.parse(await request.json());
+
     if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+
     return Response.json({ jsonrpc: "2.0", id: body.id, result: { method: body.method } });
   },
 });
@@ -20,6 +25,7 @@ describe("Pi MCP proxy", () => {
       id: 17,
       method: "tools/list",
     });
+
     expect(result).toEqual({ jsonrpc: "2.0", id: 17, result: { method: "tools/list" } });
   });
 
@@ -28,6 +34,7 @@ describe("Pi MCP proxy", () => {
       jsonrpc: "2.0",
       method: "notifications/initialized",
     });
+
     expect(result).toBeUndefined();
   });
 
@@ -37,14 +44,29 @@ describe("Pi MCP proxy", () => {
       id: 18,
       method: "tools/list",
     });
-    expect(result).toEqual({ jsonrpc: "2.0", id: 18, error: { code: -32000, message: "echo_http_404" } });
+
+    expect(result).toEqual({
+      jsonrpc: "2.0",
+      id: 18,
+      error: { code: -32000, message: "echo_http_404" },
+    });
   });
 
   test("pins the copied session to the configured Worker origin", () => {
-    expect(validateSessionUrl("https://echo.example/mcp?id=mcp.token", "https://echo.example")).toBe("https://echo.example/mcp?id=mcp.token");
-    expect(() => validateSessionUrl("https://evil.example/mcp?id=mcp.token", "https://echo.example")).toThrow("echo_session_origin_mismatch");
-    expect(() => validateSessionUrl("http://echo.example/mcp?id=mcp.token", "http://echo.example")).toThrow("echo_session_url_not_secure");
-    expect(() => validateSessionUrl("ftp://localhost/mcp?id=mcp.token", "ftp://localhost")).toThrow("echo_session_url_not_secure");
-    expect(() => validateSessionUrl("ws://127.0.0.1/mcp?id=mcp.token", "ws://127.0.0.1")).toThrow("echo_session_url_not_secure");
+    expect(
+      validateSessionUrl("https://echo.example/mcp?id=mcp.token", "https://echo.example"),
+    ).toBe("https://echo.example/mcp?id=mcp.token");
+    expect(() =>
+      validateSessionUrl("https://evil.example/mcp?id=mcp.token", "https://echo.example"),
+    ).toThrow("echo_session_origin_mismatch");
+    expect(() =>
+      validateSessionUrl("http://echo.example/mcp?id=mcp.token", "http://echo.example"),
+    ).toThrow("echo_session_url_not_secure");
+    expect(() => validateSessionUrl("ftp://localhost/mcp?id=mcp.token", "ftp://localhost")).toThrow(
+      "echo_session_url_not_secure",
+    );
+    expect(() => validateSessionUrl("ws://127.0.0.1/mcp?id=mcp.token", "ws://127.0.0.1")).toThrow(
+      "echo_session_url_not_secure",
+    );
   });
 });

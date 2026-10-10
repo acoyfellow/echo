@@ -24,20 +24,29 @@
     "verify:production": "bun scripts/verify-production.ts",
     "verify:reviews": "bun scripts/verify-reviews.ts",
     "setup:secret": "openssl rand -base64 48 | wrangler secret put ECHO_SIGNING_SECRET",
-    "e2e:codemode": "bun e2e/codemode-run.ts"
+    "e2e:codemode": "bun e2e/codemode-run.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "oxlint",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun test"
   },
   "dependencies": {
     "agents": "0.13.3",
     "hono": "^4.12.19",
     "svelte": "^5.45.0",
-    "svelte-hono": "^0.1.2"
+    "svelte-hono": "^0.1.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260527.1",
+    "@oxlint/plugins": "1.78.0",
     "@tailwindcss/cli": "^4.3.3",
     "bun-types": "1.3.14",
     "esbuild": "^0.25.10",
     "esbuild-svelte": "^0.9.5",
+    "oxlint": "1.78.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-svelte": "4.1.1",
     "svelte-check": "^4.4.5",
     "tailwindcss": "^4.3.3",
     "typescript": "6.0.3",

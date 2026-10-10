@@ -1,140 +1,119 @@
-import { mkdtemp, readdir, rm } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { z } from "zod";
+import { callCapability, launchChrome, waitFor } from "./cdp";
 
 const base = process.env.ECHO_E2E_ORIGIN ?? "http://127.0.0.1:8870";
+
 const routes = [
-  ["/", "Your app already knows what to do."],
-  ["/examples/", "Sixteen apps with real agent tools."],
-  ["/examples/todo/", "Tiny todo"],
+  ["/", "Echo lets an agent use the functions your web app already has."],
+  ["/examples/", "Sixteen small apps with Echo added."],
+  ["/examples/todo/", "an ordinary app with Echo added"],
   ["/examples/notes/", "Quarterly notes"],
-  ["/spike/owner-cut/", "Turn your app’s functions into agent tools."],
 ] as const;
+
 for (const [path, text] of routes) {
   const response = await fetch(`${base}${path}`);
   const html = await response.text();
-  if (!response.ok || !html.includes(text) || !html.includes("/__svelte/")) throw new Error(`ssr_failed:${path}`);
+
+  if (!response.ok || !html.includes(text) || !html.includes("/__svelte/"))
+    throw new Error(`ssr_failed:${path}`);
 }
 
-const cached = await readdir(join(homedir(), "Library", "Caches", "ms-playwright")).catch(() => []);
-const candidates = cached.filter((name) => name.startsWith("chromium-")).sort().reverse().map((name) => join(homedir(), "Library", "Caches", "ms-playwright", name, "chrome-mac-arm64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"));
-let cachedBinary = "";
-for (const candidate of candidates) if (await Bun.file(candidate).exists()) { cachedBinary = candidate; break; }
-const binary = process.env.CHROME_PATH || cachedBinary || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const profile = await mkdtemp(join(tmpdir(), "echo-site-"));
-const port = 10300 + Math.floor(Math.random() * 500);
-const chrome = Bun.spawn([binary, "--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--no-first-run", "--disable-default-apps", `${base}/`], { stdout: "ignore", stderr: "ignore" });
+const browser = await launchChrome(`${base}/`);
 
-type CdpMessage = { id?: number; result?: Record<string, unknown>; error?: unknown };
-let targetUrl = "";
-for (let attempt = 0; attempt < 120; attempt += 1) {
-  try {
-    const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((response) => response.json()) as Array<{ type: string; url: string; webSocketDebuggerUrl: string }>;
-    targetUrl = targets.find((target) => target.type === "page" && target.url === `${base}/`)?.webSocketDebuggerUrl ?? "";
-    if (targetUrl) break;
-  } catch {}
-  await Bun.sleep(100);
-}
-if (!targetUrl) throw new Error("site_chrome_target_missing");
+const { cdp, evaluate } = browser;
 
-const socket = new WebSocket(targetUrl);
-await new Promise<void>((resolve, reject) => {
-  socket.addEventListener("open", () => resolve(), { once: true });
-  socket.addEventListener("error", () => reject(new Error("site_cdp_failed")), { once: true });
-});
-let nextId = 0;
-const pending = new Map<number, (message: CdpMessage) => void>();
-socket.addEventListener("message", (event) => {
-  const message = JSON.parse(String(event.data)) as CdpMessage;
-  if (message.id) pending.get(message.id)?.(message);
-});
-async function cdp(method: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-  const id = ++nextId;
-  const result = new Promise<CdpMessage>((resolve) => pending.set(id, resolve));
-  socket.send(JSON.stringify({ id, method, params }));
-  const message = await result;
-  pending.delete(id);
-  if (message.error) throw new Error(JSON.stringify(message.error));
-  return message.result ?? {};
-}
-async function evaluate<Value>(expression: string): Promise<Value> {
-  const response = await cdp("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-  const result = response.result as { value?: Value; description?: string };
-  if (!("value" in result)) throw new Error(result.description ?? "site_evaluation_failed");
-  return result.value as Value;
-}
-async function waitFor(expression: string): Promise<void> {
-  for (let attempt = 0; attempt < 120; attempt += 1) {
-    try {
-      if (await evaluate(expression)) return;
-    } catch {}
-    await Bun.sleep(100);
-  }
-  throw new Error(`site_wait_failed:${expression}`);
-}
-async function verifyCodePanel(label: string) {
-  const valid = await evaluate<boolean>(`(() => {
-    const panel = document.querySelector('#hero-code');
-    const lines = [...panel.children];
-    const indented = lines.find((line) => line.textContent.startsWith('appId')); 
-    const spacers = lines.filter((line) => line.classList.contains('h-3'));
-    return panel.scrollHeight <= panel.clientHeight
-      && panel.scrollWidth <= panel.clientWidth
-      && !!indented
-      && getComputedStyle(indented).whiteSpace === 'pre'
-      && parseFloat(getComputedStyle(indented).paddingLeft) > 0
-      && spacers.length === 3
-      && spacers.every((spacer) => spacer.getBoundingClientRect().height > 0);
-  })()`);
-  if (!valid) throw new Error(`site_code_panel_overflow:${label}`);
-}
+async function verifyCodeBlocks(label: string) {
+  const valid = await evaluate(
+    `(() => {
+    const blocks = [...document.querySelectorAll('pre.code')];
+    return blocks.length === 3
+      && blocks.filter((block) => block.querySelector('.tok-keyword')).length === 2
+      && blocks.every((block) => block.getBoundingClientRect().right <= innerWidth + 1);
+  })()`,
+    z.boolean(),
+  );
 
-async function tool(endpoint: string, id: number, name: string, input: unknown, operationId?: string) {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "echo_call_capability", arguments: { name, input, ...(operationId ? { operationId } : {}) } } }),
-  });
-  return response.json() as Promise<{ result?: { structuredContent?: { ok?: boolean; error?: string; result?: unknown } } }>;
+  if (!valid) throw new Error(`site_code_blocks_invalid:${label}`);
 }
 
 try {
   await cdp("Runtime.enable");
   await cdp("Page.enable");
-  await cdp("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')");
-  await verifyCodePanel("desktop");
-  await waitFor("document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')?.contentDocument?.querySelector('#connect')");
-  await evaluate("frames[0].document.querySelector('#connect').click(); true");
-  await waitFor("frames[0].document.querySelector('#status')?.textContent === 'Agent connected'");
-  const endpoint = await evaluate<string>("frames[0].document.querySelector('#session').textContent");
-  const listed = await tool(endpoint, 1, "listTodos", {});
-  if (!listed.result?.structuredContent?.ok) throw new Error("site_echo_list_failed");
+  await cdp("Emulation.setDeviceMetricsOverride", {
+    width: 1440,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await waitFor(
+    browser,
+    "document.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')",
+  );
+  await verifyCodeBlocks("desktop");
+
+  const homeLinks = await evaluate(
+    "document.querySelectorAll('a[href=\"/examples/\"]').length >= 2 && document.querySelectorAll('section[aria-labelledby=\"examples-title\"] li a').length === 6 && document.querySelectorAll('img[src^=\"/icons/cf-\"]').length === 4",
+    z.boolean(),
+  );
+
+  if (!homeLinks) throw new Error("site_home_links_missing");
+  await waitFor(
+    browser,
+    "document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true' && !!document.querySelector('iframe')?.contentDocument?.querySelector('#connect')",
+  );
+  await browser.run("frames[0].document.querySelector('#connect').click(); true");
+  await waitFor(
+    browser,
+    "frames[0].document.querySelector('#status')?.textContent === 'Agent connected'",
+  );
+
+  const endpoint = await evaluate(
+    "frames[0].document.querySelector('#session').textContent",
+    z.string(),
+  );
+
+  const listed = await callCapability(endpoint, 1, "listTodos", {});
+
+  if (!listed.ok) throw new Error("site_echo_list_failed");
   const text = `Hydrated through Echo ${Date.now()}`;
-  const added = await tool(endpoint, 2, "addTodo", { text }, crypto.randomUUID());
-  if (!added.result?.structuredContent?.ok) throw new Error("site_echo_add_failed");
-  await waitFor(`frames[0].document.body.textContent.includes(${JSON.stringify(text)}) && document.body.textContent.includes('AGENT LINE OPEN')`);
-  await waitFor("document.body.textContent.includes('ADDTODO · FINISHED · THIS CAME THROUGH ECHO')");
-  await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await verifyCodePanel("mobile");
-  const responsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth");
+  const added = await callCapability(endpoint, 2, "addTodo", { text }, crypto.randomUUID());
+
+  if (!added.ok) throw new Error("site_echo_add_failed");
+  await waitFor(browser, `frames[0].document.body.textContent.includes(${JSON.stringify(text)})`);
+  await cdp("Emulation.setDeviceMetricsOverride", {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  await Bun.sleep(300);
+
+  const responsive = await evaluate(
+    "document.documentElement.scrollWidth <= innerWidth && frames[0].document.documentElement.scrollWidth <= frames[0].innerWidth",
+    z.boolean(),
+  );
+
   if (!responsive) throw new Error("site_mobile_overflow");
-  await evaluate("frames[0].document.querySelector('#stop').click(); true");
-  await waitFor("document.body.textContent.includes('SESSION CLOSED · the wire is cut')");
-  const afterStop = await tool(endpoint, 3, "listTodos", {});
-  if (afterStop.result?.structuredContent?.error !== "session_closed") throw new Error("site_stop_failed");
+  await browser.run("frames[0].document.querySelector('#stop').click(); true");
+  await Bun.sleep(500);
+  const afterStop = await callCapability(endpoint, 3, "listTodos", {});
+
+  if (afterStop.error !== "session_closed") throw new Error("site_stop_failed");
   await cdp("Page.navigate", { url: `${base}/examples/` });
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelectorAll('section[aria-labelledby=\"more-title\"] a').length === 14");
-  const examplesResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 2 && document.querySelectorAll('main a[href^=\"/examples/\"]').length === 16");
+  await waitFor(
+    browser,
+    "document.documentElement.dataset.hydrated === 'true' && document.querySelectorAll('section[aria-labelledby=\"more-title\"] a').length === 14",
+  );
+
+  const examplesResponsive = await evaluate(
+    "document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll('section[aria-labelledby=\"live-title\"] a').length === 2 && document.querySelectorAll('main a[href^=\"/examples/\"]').length === 16",
+    z.boolean(),
+  );
+
   if (!examplesResponsive) throw new Error("examples_mobile_overflow");
-  await cdp("Page.navigate", { url: `${base}/spike/owner-cut/` });
-  await waitFor("document.documentElement.dataset.hydrated === 'true' && document.querySelector('iframe')?.contentDocument?.documentElement.dataset.hydrated === 'true'");
-  const spikeResponsive = await evaluate<boolean>("document.documentElement.scrollWidth <= innerWidth");
-  if (!spikeResponsive) throw new Error("owner_cut_mobile_overflow");
-  console.log("PASS: Svelte SSR, hydration, responsive home, examples, and owner cut, real Echo MCP mutation, live activity wire, and Stop");
+  console.log(
+    "PASS: SSR, hydration, highlighted code, examples links, Cloudflare icons, real Echo MCP mutation, mobile fit, and Stop",
+  );
 } finally {
-  socket.close();
-  chrome.kill();
-  await chrome.exited;
-  await rm(profile, { recursive: true, force: true });
+  await browser.close();
 }

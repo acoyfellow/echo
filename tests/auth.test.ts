@@ -1,9 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { mintSessionCapabilities, mintWorkerCapability, verifyCapability, type CapabilityGrant } from "../src/auth";
+import {
+  mintSessionCapabilities,
+  mintWorkerCapability,
+  verifyCapability,
+  type CapabilityGrant,
+} from "../src/auth";
 
 const secret = "test-secret-must-be-long-enough-for-hmac-sha-256-xxxxxxxxxxxxxxxx";
+
 const origin = "https://example.com";
+
 const appId = "notes";
+
 const grants: CapabilityGrant[] = [
   { name: "readState", effect: "read" },
   { name: "setDraft", effect: "mutation" },
@@ -27,7 +35,16 @@ describe("session capabilities", () => {
 
   it("does not accept credentials on another authority channel", async () => {
     const minted = await session();
-    const workerToken = await mintWorkerCapability(secret, minted.id, origin, minted.expiresAt, appId, grants);
+
+    const workerToken = await mintWorkerCapability(
+      secret,
+      minted.id,
+      origin,
+      minted.expiresAt,
+      appId,
+      grants,
+    );
+
     expect(await verifyCapability(secret, minted.mcpToken, "page")).toBeNull();
     expect(await verifyCapability(secret, minted.pageToken, "mcp")).toBeNull();
     expect(await verifyCapability(secret, minted.pageToken, "worker")).toBeNull();
@@ -39,7 +56,13 @@ describe("session capabilities", () => {
     const parts = minted.mcpToken.split(".");
     parts[6] = "AAAA";
     expect(await verifyCapability(secret, parts.join("."), "mcp")).toBeNull();
-    expect(await verifyCapability("different-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", minted.mcpToken, "mcp")).toBeNull();
+    expect(
+      await verifyCapability(
+        "different-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        minted.mcpToken,
+        "mcp",
+      ),
+    ).toBeNull();
     expect(await verifyCapability(secret, "a.b.c", "mcp")).toBeNull();
     const invalid = await mintSessionCapabilities(secret, "not-an-origin", 1, appId, grants);
     expect(await verifyCapability(secret, invalid.mcpToken, "mcp")).toBeNull();

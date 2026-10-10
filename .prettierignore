@@ -1,0 +1,8 @@
+build/
+generated/
+node_modules/
+public/
+receipts/
+proof/
+tools/oxlint/anti-slop/
+bun.lock

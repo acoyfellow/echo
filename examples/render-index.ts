@@ -1,11 +1,17 @@
 import { examples } from "./catalog";
 
-const cards = examples.map((example) => `<${example.live ? "a" : "article"} class="card${example.live ? " live" : ""}" ${example.live ? `href="/examples/${example.slug}/"` : ""} style="--accent:${example.color}">
+const cards = examples
+  .map(
+    (
+      example,
+    ) => `<${example.live ? "a" : "article"} class="card${example.live ? " live" : ""}" ${example.live ? `href="/examples/${example.slug}/"` : ""} style="--accent:${example.color}">
 <div class="top"><span class="emoji">${example.emoji}</span><span class="status">${example.live ? "play now" : "next up"}</span></div>
 <h2>${example.name}</h2><p>${example.description}</p>
 <div class="tools">${example.tools.map((tool) => `<span>${tool}</span>`).join("")}</div>
 <blockquote>“${example.prompt}”</blockquote>
-</${example.live ? "a" : "article"}>`).join("");
+</${example.live ? "a" : "article"}>`,
+  )
+  .join("");
 
 export const examplesPage = `<!doctype html>
 <html lang="en">

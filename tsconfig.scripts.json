@@ -3,20 +3,12 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "Bundler",
-    "lib": [
-      "ES2022",
-      "DOM"
-    ],
-    "types": [
-      "bun-types"
-    ],
+    "lib": ["ES2022", "DOM"],
+    "types": ["bun-types"],
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
     "rootDir": "."
   },
-  "include": [
-    "e2e/**/*.ts",
-    "scripts/**/*.ts"
-  ]
+  "include": ["e2e/**/*.ts", "scripts/**/*.ts"]
 }

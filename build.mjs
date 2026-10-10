@@ -3,7 +3,11 @@ import { build } from "esbuild";
 import sveltePlugin from "esbuild-svelte";
 import { buildHonoSvelteClientArtifacts } from "svelte-hono/build";
 
-const tailwind = Bun.spawnSync(["bunx", "@tailwindcss/cli", "-i", "./src/ui/input.css", "-o", "./public/site.css", "--minify"], { stdout: "inherit", stderr: "inherit" });
+const tailwind = Bun.spawnSync(
+  ["bunx", "@tailwindcss/cli", "-i", "./src/ui/input.css", "-o", "./public/site.css", "--minify"],
+  { stdout: "inherit", stderr: "inherit" },
+);
+
 if (tailwind.exitCode !== 0) process.exit(tailwind.exitCode);
 
 mkdirSync("./generated", { recursive: true });
@@ -11,7 +15,6 @@ mkdirSync("./generated", { recursive: true });
 const components = {
   home: "./ui/Home.svelte",
   examples: "./ui/Examples.svelte",
-  ownerCut: "./ui/OwnerCut.svelte",
   todo: "../examples/todo/App.svelte",
   notes: "../examples/notes/App.svelte",
   arcade: "../examples/ArcadeApp.svelte",

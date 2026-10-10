@@ -12,31 +12,76 @@
   --color-signal: #62e6a7;
   --color-danger: #ff6655;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-spec: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-sheet: #f4f1ea;
+  --color-sheet-deep: #ebe6db;
+  --color-pen: #1b1a17;
+  --color-pen-soft: #4a473f;
+  --color-pen-faint: #8a857a;
+  --color-stop: #9b2c1f;
 }
 
 @layer base {
-  html { color-scheme: dark; scroll-behavior: smooth; background: var(--color-ink); }
-  body { margin: 0; overflow-x: hidden; background: var(--color-ink); color: var(--color-paper); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-  button, a { font: inherit; }
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    background: var(--color-ink);
+  }
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+  button,
+  a {
+    font: inherit;
+  }
 }
 
 @keyframes wire-packet {
-  0% { top: 10%; opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { top: 90%; opacity: 0; }
+  0% {
+    top: 10%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 90%;
+    opacity: 0;
+  }
 }
 
 @keyframes arcade-drift {
-  to { transform: translateX(-42%); }
+  to {
+    transform: translateX(-42%);
+  }
 }
 
-.code-lines > span { white-space: pre; }
-.wire-packet-active { animation: wire-packet .85s ease-in-out infinite; }
-.arcade-drift { animation: arcade-drift 48s linear infinite; }
-.arcade-drift:hover { animation-play-state: paused; }
+.code-lines > span {
+  white-space: pre;
+}
+.wire-packet-active {
+  animation: wire-packet 0.85s ease-in-out infinite;
+}
+.arcade-drift {
+  animation: arcade-drift 48s linear infinite;
+}
+.arcade-drift:hover {
+  animation-play-state: paused;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  .wire-packet-active, .arcade-drift { animation: none; }
+  html {
+    scroll-behavior: auto;
+  }
+  .wire-packet-active,
+  .arcade-drift {
+    animation: none;
+  }
 }

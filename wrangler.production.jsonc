@@ -6,28 +6,20 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "build": { "command": "bun run build:site" },
-  "routes": [
-    { "pattern": "echo.coey.dev", "custom_domain": true }
-  ],
+  "routes": [{ "pattern": "echo.coey.dev", "custom_domain": true }],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": true
+    "run_worker_first": true,
   },
   "observability": { "enabled": false },
   "durable_objects": {
-    "bindings": [
-      { "name": "ECHO_AGENT", "class_name": "EchoAgent" }
-    ]
+    "bindings": [{ "name": "ECHO_AGENT", "class_name": "EchoAgent" }],
   },
-  "worker_loaders": [
-    { "binding": "LOADER" }
-  ],
-  "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["EchoAgent"] }
-  ],
+  "worker_loaders": [{ "binding": "LOADER" }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EchoAgent"] }],
   "vars": {
     "ECHO_MAX_SESSION_HOURS": "1",
-    "ECHO_MAX_MCP_BYTES": "131072"
-  }
+    "ECHO_MAX_MCP_BYTES": "131072",
+  },
 }

@@ -1,20 +1,42 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { z } from "zod";
   import { createEcho, type EchoClient } from "../../client";
   import ExampleFooter from "../ExampleFooter.svelte";
 
   let draft = $state("Initial draft");
+
   let status = $state("Agent access stopped");
+
   let activity = $state("No agent activity");
+
   let mcpUrl = $state("");
+
   let connecting = $state(false);
+
   let copied = $state(false);
+
   let echo: EchoClient | undefined;
+
+  const draftInput = z.object({ text: z.string().max(2000) });
+
+  const savedProof = z.object({ draft: z.string().optional(), activity: z.string().optional() });
+
+  function readProof(saved: string): z.infer<typeof savedProof> {
+    try {
+      const parsed = savedProof.safeParse(JSON.parse(saved));
+
+      return parsed.success ? parsed.data : {};
+    } catch {
+      return {};
+    }
+  }
 
   async function connect() {
     if (!echo || connecting) return;
     connecting = true;
     status = "Connecting";
+
     try {
       const connected = await echo.connect();
       mcpUrl = connected.mcpUrl;
@@ -35,17 +57,21 @@
   async function copyUrl() {
     await navigator.clipboard.writeText(mcpUrl);
     copied = true;
-    setTimeout(() => copied = false, 1500);
+    setTimeout(() => (copied = false), 1500);
   }
 
   onMount(() => {
     document.documentElement.dataset.hydrated = "true";
     const saved = sessionStorage.getItem("echo-demo-proof");
+
     if (saved) {
-      const proof = JSON.parse(saved) as { draft?: string; activity?: string };
+      const proof = readProof(saved);
+
       if (proof.draft) draft = proof.draft;
+
       if (proof.activity) activity = proof.activity;
     }
+
     echo = createEcho({
       workerBase: location.origin,
       appId: "echo-notes-demo",
@@ -59,41 +85,65 @@
         description: "Read the demo title and draft",
         effect: "read",
         inputSchema: { type: "object", additionalProperties: false },
-        outputSchema: { type: "object", properties: { title: { type: "string" }, draft: { type: "string" } }, required: ["title", "draft"] },
+        outputSchema: {
+          type: "object",
+          properties: { title: { type: "string" }, draft: { type: "string" } },
+          required: ["title", "draft"],
+        },
         run: () => ({ title: "Quarterly notes", draft }),
       },
       setDraft: {
         description: "Replace the demo draft",
         effect: "mutation",
-        inputSchema: { type: "object", properties: { text: { type: "string", maxLength: 2000 } }, required: ["text"], additionalProperties: false },
-        outputSchema: { type: "object", properties: { draft: { type: "string" } }, required: ["draft"] },
+        inputSchema: {
+          type: "object",
+          properties: { text: { type: "string", maxLength: 2000 } },
+          required: ["text"],
+          additionalProperties: false,
+        },
+        outputSchema: {
+          type: "object",
+          properties: { draft: { type: "string" } },
+          required: ["draft"],
+        },
         run(value) {
-          const input = value as { text?: unknown };
-          if (typeof input.text !== "string" || input.text.length > 2000) throw new Error("draft_invalid");
-          draft = input.text;
+          draft = draftInput.parse(value).text;
+
           return { draft };
         },
       },
       uncertainMutation: {
         description: "Test a disconnect after a visible mutation and before its result",
         effect: "mutation",
-        inputSchema: { type: "object", properties: { text: { type: "string", maxLength: 2000 } }, required: ["text"], additionalProperties: false },
+        inputSchema: {
+          type: "object",
+          properties: { text: { type: "string", maxLength: 2000 } },
+          required: ["text"],
+          additionalProperties: false,
+        },
         async run(value) {
-          const input = value as { text?: unknown };
-          if (typeof input.text !== "string" || input.text.length > 2000) throw new Error("draft_invalid");
-          draft = input.text;
+          draft = draftInput.parse(value).text;
           await new Promise((resolve) => setTimeout(resolve, 5_000));
+
           return { draft };
         },
       },
     });
+
     const click = (event: MouseEvent) => {
-      const target = event.target as Element;
+      const target = event.target;
+
+      if (!(target instanceof Element)) return;
+
       if (target.closest("#connect")) void connect();
+
       if (target.closest("#copy")) void copyUrl();
+
       if (target.closest("#stop")) stop();
     };
+
     document.addEventListener("click", click);
+
     return () => {
       document.removeEventListener("click", click);
       echo?.stop();
@@ -101,16 +151,55 @@
   });
 </script>
 
-<svelte:head><meta name="description" content="A live notes app that exposes three explicit Echo capabilities." /></svelte:head>
+<svelte:head
+  ><meta
+    name="description"
+    content="A live notes app that exposes three explicit Echo capabilities."
+  /></svelte:head
+>
 
-<main class="grid min-h-svh place-items-center bg-[radial-gradient(circle_at_20%_10%,#3f2718_0,transparent_35%),#0b1118] p-5">
-  <section class="w-full max-w-2xl rounded-2xl border border-white/15 bg-layer p-7 shadow-2xl">
-    <p class="m-0 font-mono text-[11px] font-bold uppercase tracking-[.18em] text-amber">Echo live notes</p>
-    <h1 id="title" class="mb-3 mt-2 text-3xl font-black tracking-[-.04em]">Quarterly notes</h1>
-    <p class="text-sm text-muted">This app exposes read, draft update, and uncertainty-test actions. Approval and Stop stay here.</p>
-    <textarea id="draft" bind:value={draft} class="mt-3 min-h-40 w-full rounded-lg border border-white/15 bg-[#182431] p-4 text-paper outline-none focus:border-[#76c7f0]"></textarea>
-    <div class="my-4 rounded-lg bg-[#182431] p-4"><strong id="status">{status}</strong><p id="activity" class="my-2 text-sm text-muted">{activity}</p>{#if mcpUrl}<code id="session" class="block [overflow-wrap:anywhere] font-mono text-[10px] text-[#76c7f0]">{mcpUrl}</code><button id="copy" type="button" class="mt-3 rounded-lg bg-[#76c7f0] px-4 py-2 text-xs font-bold text-ink">{copied ? 'Copied' : 'Copy session URL'}</button>{:else}<code id="session"></code>{/if}</div>
-    <div class="flex gap-2">{#if !mcpUrl}<button id="connect" type="button" disabled={connecting} class="rounded-lg bg-echo px-4 py-3 font-bold text-ink disabled:opacity-50">Connect this tab</button>{:else}<button id="stop" type="button" class="rounded-lg bg-danger px-4 py-3 font-bold text-ink">Stop agent access</button>{/if}</div>
+<main class="min-h-svh bg-sheet font-spec text-[14px] leading-[1.7] text-pen [color-scheme:light]">
+  <section class="mx-auto w-full max-w-[680px] px-5 py-5">
+    <header class="border-b border-pen pb-3">
+      <p class="m-0 text-[12px] text-pen-faint">your app</p>
+      <h1 id="title" class="mb-0 mt-1 text-[18px] font-bold">Quarterly notes</h1>
+      <p class="m-0 text-[12px] text-pen-soft">
+        exposes read, draft update, and an uncertainty test. Connect and Stop stay here.
+      </p>
+    </header>
+    <textarea
+      id="draft"
+      bind:value={draft}
+      class="mt-4 min-h-44 w-full resize-y border border-pen bg-sheet-deep p-3 font-spec text-[14px] leading-[1.7] text-pen outline-none focus:bg-sheet"
+    ></textarea>
+    <div class="mt-4 border-t border-pen pt-3">
+      <strong id="status" class="text-[12px] font-bold">{status}</strong>
+      <p id="activity" class="m-0 text-[12px] text-pen-soft">{activity}</p>
+      {#if mcpUrl}<code
+          id="session"
+          class="mt-3 block [overflow-wrap:anywhere] border-l-2 border-pen bg-sheet-deep px-3 py-2 text-[11px] leading-relaxed"
+          >{mcpUrl}</code
+        >{:else}<code id="session"></code>{/if}
+    </div>
+    <div class="mt-3 flex gap-2">
+      {#if !mcpUrl}<button
+          id="connect"
+          type="button"
+          disabled={connecting}
+          class="border border-pen bg-pen px-4 py-2 text-[12px] font-bold text-sheet disabled:opacity-50"
+          >Connect this tab</button
+        >{:else}<button
+          id="copy"
+          type="button"
+          class="border border-pen bg-transparent px-4 py-2 text-[12px] font-bold text-pen"
+          >{copied ? "Copied" : "Copy session URL"}</button
+        ><button
+          id="stop"
+          type="button"
+          class="border border-stop bg-stop px-4 py-2 text-[12px] font-bold text-sheet"
+          >Stop agent access</button
+        >{/if}
+    </div>
     {#if !mcpUrl}<button id="stop" type="button" class="hidden">Stop agent access</button>{/if}
     <ExampleFooter slug="notes" />
   </section>

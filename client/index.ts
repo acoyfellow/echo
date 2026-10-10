@@ -1,73 +1,152 @@
+import { z } from "zod";
+import { json, type Json } from "../src/schema";
+
+export type { Json };
+
 export type EchoEffect = "read" | "mutation";
 
-export type EchoCapability<Input = unknown, Output = unknown> = {
+export type JsonSchema = { [keyword: string]: Json };
+
+export type EchoCapabilityContext = { operationId?: string; signal: AbortSignal };
+
+export type EchoCapability = {
   description: string;
-  inputSchema: Record<string, unknown>;
-  outputSchema?: Record<string, unknown>;
+  inputSchema: JsonSchema;
+  outputSchema?: JsonSchema;
   effect: EchoEffect;
-  run(input: Input, context: { operationId?: string; signal: AbortSignal }): Promise<Output> | Output;
+  run(input: Json, context: EchoCapabilityContext): Promise<Json> | Json;
 };
 
-export type EchoCapabilities = Record<string, EchoCapability>;
+export type EchoCapabilities = { [name: string]: EchoCapability };
 
-type MintedSession = {
-  id: string;
-  mcpToken: string;
-  pageToken: string;
-  expiresAt: number;
+export type EchoActivity = {
+  capability: string;
+  effect: EchoEffect;
+  operationId?: string;
+  status: "started" | "finished" | "failed";
+};
+
+export type EchoCapabilityDescription = {
+  name: string;
+  description: string;
+  inputSchema: JsonSchema;
+  outputSchema?: JsonSchema;
+  effect: EchoEffect;
 };
 
 type EchoSocket = {
-  addEventListener(type: string, listener: (event: MessageEvent | Event) => void): void;
+  addEventListener(type: "message", listener: (event: { data: string }) => void): void;
+  addEventListener(type: "open" | "error" | "close", listener: () => void): void;
   close(): void;
   send(value: string): void;
 };
 
-type EchoFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+type EchoFetch = (input: string, init: RequestInit) => Promise<Response>;
 
-type EchoClientOptions = {
+export type EchoClientOptions = {
   workerBase: string;
   appId: string;
   origin?: string;
   fetch?: EchoFetch;
   createSocket?: (url: string) => EchoSocket;
-  onActivity?: (activity: { capability: string; effect: EchoEffect; operationId?: string; status: "started" | "finished" | "failed" }) => void;
+  onActivity?: (activity: EchoActivity) => void;
 };
 
-function bytes(value: unknown): number {
-  return new TextEncoder().encode(JSON.stringify(value ?? null)).byteLength;
+type CallResult = { ok: true; result: Json } | { ok: false; error: string };
+
+const mintedSession = z.object({
+  id: z.string(),
+  mcpToken: z.string(),
+  pageToken: z.string(),
+  expiresAt: z.number(),
+});
+
+const tabRequest = z.object({
+  type: z.enum(["capability_list", "capability_call"]),
+  callId: z.string().min(1),
+  name: z.string().optional(),
+  input: json.optional(),
+  operationId: z.string().optional(),
+  timeoutMs: z.number().optional(),
+});
+
+type TabRequest = z.infer<typeof tabRequest>;
+
+function bytes(value: Json): number {
+  return new TextEncoder().encode(JSON.stringify(value)).byteLength;
 }
 
-function socketUrl(workerBase: string, id: string, origin: string, token: string, appId: string): string {
+function parseTabRequest(data: string): TabRequest | undefined {
+  try {
+    const parsed = tabRequest.safeParse(JSON.parse(data));
+
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function socketUrl(
+  workerBase: string,
+  id: string,
+  origin: string,
+  token: string,
+  appId: string,
+): string {
   const url = new URL(`/agents/echo-agent/${id}`, workerBase);
+
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.searchParams.set("origin", origin);
   url.searchParams.set("token", token);
   url.searchParams.set("appId", appId);
   url.searchParams.set("transport", "page");
+
   return url.toString();
+}
+
+function browserSocket(url: string): EchoSocket {
+  const socket = new WebSocket(url);
+
+  return {
+    addEventListener(type: string, listener: (event: { data: string }) => void) {
+      socket.addEventListener(type, (event) => {
+        listener({ data: event instanceof MessageEvent ? String(event.data) : "" });
+      });
+    },
+    close: () => socket.close(),
+    send: (value) => socket.send(value),
+  };
 }
 
 export class EchoClient {
   readonly #options: EchoClientOptions;
   readonly #capabilities = new Map<string, EchoCapability>();
   #socket: EchoSocket | null = null;
-  #session: MintedSession | null = null;
 
   constructor(options: EchoClientOptions) {
     this.#options = options;
   }
 
+  get #origin(): string {
+    return this.#options.origin ?? globalThis.location.origin;
+  }
+
+  get #base(): string {
+    return this.#options.workerBase.replace(/\/$/, "");
+  }
+
   register(capabilities: EchoCapabilities): void {
     if (this.#socket) throw new Error("session_active");
+
     for (const [name, capability] of Object.entries(capabilities)) {
       if (!/^[a-zA-Z][a-zA-Z0-9_.-]{0,127}$/.test(name)) throw new Error("capability_name_invalid");
+
       if (this.#capabilities.has(name)) throw new Error("capability_already_registered");
       this.#capabilities.set(name, capability);
     }
   }
 
-  describe(): Array<{ name: string; description: string; inputSchema: Record<string, unknown>; outputSchema?: Record<string, unknown>; effect: EchoEffect }> {
+  describe(): EchoCapabilityDescription[] {
     return [...this.#capabilities].map(([name, capability]) => ({
       name,
       description: capability.description,
@@ -79,23 +158,43 @@ export class EchoClient {
 
   async connect(): Promise<{ sessionId: string; mcpUrl: string; expiresAt: number }> {
     if (this.#socket) throw new Error("session_active");
+
     if (this.#capabilities.size === 0) throw new Error("capabilities_required");
-    const origin = this.#options.origin ?? globalThis.location.origin;
-    const fetcher = this.#options.fetch ?? globalThis.fetch;
-    const response = await fetcher(`${this.#options.workerBase.replace(/\/$/, "")}/sessions`, {
+    const fetcher: EchoFetch = this.#options.fetch ?? ((input, init) => fetch(input, init));
+
+    const response = await fetcher(`${this.#base}/sessions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ origin, appId: this.#options.appId, capabilities: this.describe() }),
+      body: JSON.stringify({
+        origin: this.#origin,
+        appId: this.#options.appId,
+        capabilities: this.describe(),
+      }),
     });
+
     if (!response.ok) throw new Error(`session_mint_failed_${response.status}`);
-    const session = await response.json() as MintedSession;
-    const createSocket = this.#options.createSocket ?? ((url) => new WebSocket(url));
-    const socket = createSocket(socketUrl(this.#options.workerBase, session.id, origin, session.pageToken, this.#options.appId));
-    this.#session = session;
+    const parsed = mintedSession.safeParse(await response.json());
+
+    if (!parsed.success) throw new Error("session_mint_invalid");
+    const session = parsed.data;
+    const createSocket = this.#options.createSocket ?? browserSocket;
+
+    const socket = createSocket(
+      socketUrl(
+        this.#options.workerBase,
+        session.id,
+        this.#origin,
+        session.pageToken,
+        this.#options.appId,
+      ),
+    );
+
     this.#socket = socket;
-    socket.addEventListener("message", (event) => void this.#onMessage(event as MessageEvent));
+    socket.addEventListener("message", (event) => void this.#onMessage(event.data));
+
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error("page_connection_timeout")), 10_000);
+
       socket.addEventListener("open", () => {
         clearTimeout(timeout);
         resolve();
@@ -108,66 +207,118 @@ export class EchoClient {
         clearTimeout(timeout);
         reject(new Error("page_connection_closed"));
       });
-    }).catch((error) => {
+    }).catch((error: Error) => {
       if (this.#socket === socket) this.#socket = null;
       socket.close();
       throw error;
     });
+
     socket.addEventListener("close", () => {
       if (this.#socket === socket) this.#socket = null;
     });
+
     return {
       sessionId: session.id,
-      mcpUrl: `${this.#options.workerBase.replace(/\/$/, "")}/mcp?id=${encodeURIComponent(session.mcpToken)}`,
+      mcpUrl: `${this.#base}/mcp?id=${encodeURIComponent(session.mcpToken)}`,
       expiresAt: session.expiresAt,
     };
   }
 
   stop(): void {
     const socket = this.#socket;
+
     this.#socket = null;
-    this.#session = null;
     socket?.close();
   }
 
-  async #onMessage(event: MessageEvent): Promise<void> {
-    let message: { type?: string; callId?: string; name?: string; input?: unknown; operationId?: string; timeoutMs?: number };
-    try { message = JSON.parse(String(event.data)); } catch { return; }
-    if (!message.callId) return;
+  async #onMessage(data: string): Promise<void> {
+    const message = parseTabRequest(data);
+
+    if (!message) return;
+
     if (message.type === "capability_list") {
-      this.#send(message.callId, { ok: true, result: { appId: this.#options.appId, origin: this.#options.origin ?? globalThis.location.origin, capabilities: this.describe() } });
+      this.#send(message.callId, {
+        ok: true,
+        result: { appId: this.#options.appId, origin: this.#origin, capabilities: this.describe() },
+      });
+
       return;
     }
+
     const capability = message.name ? this.#capabilities.get(message.name) : undefined;
-    if (message.type !== "capability_call" || !message.name || !capability) {
+
+    if (!message.name || !capability) {
       this.#send(message.callId, { ok: false, error: "capability_not_granted" });
+
       return;
     }
+
     if (capability.effect === "mutation" && !message.operationId) {
       this.#send(message.callId, { ok: false, error: "operation_id_required" });
+
       return;
     }
-    if (bytes(message.input) > 65_536) {
+
+    const input = message.input ?? null;
+
+    if (bytes(input) > 65_536) {
       this.#send(message.callId, { ok: false, error: "capability_input_too_large" });
+
       return;
     }
+
+    await this.#run(message.callId, message.name, capability, input, message);
+  }
+
+  async #run(
+    callId: string,
+    name: string,
+    capability: EchoCapability,
+    input: Json,
+    message: TabRequest,
+  ): Promise<void> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), Math.min(message.timeoutMs ?? 20_000, 20_000));
-    this.#options.onActivity?.({ capability: message.name, effect: capability.effect, operationId: message.operationId, status: "started" });
+
+    const timeout = setTimeout(
+      () => controller.abort(),
+      Math.min(message.timeoutMs ?? 20_000, 20_000),
+    );
+
+    const report = (status: EchoActivity["status"]) =>
+      this.#options.onActivity?.({
+        capability: name,
+        effect: capability.effect,
+        operationId: message.operationId,
+        status,
+      });
+
+    report("started");
+
     try {
-      const result = await capability.run(message.input, { operationId: message.operationId, signal: controller.signal });
-      if (bytes(result) > 262_144) this.#send(message.callId, { ok: false, error: "capability_result_too_large" });
-      else this.#send(message.callId, { ok: true, result });
-      this.#options.onActivity?.({ capability: message.name, effect: capability.effect, operationId: message.operationId, status: "finished" });
+      const result = await capability.run(input, {
+        operationId: message.operationId,
+        signal: controller.signal,
+      });
+
+      this.#send(
+        callId,
+        bytes(result) > 262_144
+          ? { ok: false, error: "capability_result_too_large" }
+          : { ok: true, result },
+      );
+      report("finished");
     } catch {
-      this.#send(message.callId, { ok: false, error: controller.signal.aborted ? "capability_timeout" : "capability_execution_failed" });
-      this.#options.onActivity?.({ capability: message.name, effect: capability.effect, operationId: message.operationId, status: "failed" });
+      this.#send(callId, {
+        ok: false,
+        error: controller.signal.aborted ? "capability_timeout" : "capability_execution_failed",
+      });
+      report("failed");
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  #send(callId: string, result: unknown): void {
+  #send(callId: string, result: CallResult): void {
     this.#socket?.send(JSON.stringify({ type: "result", callId, result }));
   }
 }

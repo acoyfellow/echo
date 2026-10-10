@@ -11,8 +11,4 @@ export interface Env {
   ECHO_COMMIT_SHA?: string;
 }
 
-export type WebMcpResult = {
-  ok: boolean;
-  result?: unknown;
-  error?: string;
-};
+export type { EchoResult as WebMcpResult } from "./schema";

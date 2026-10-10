@@ -35,27 +35,27 @@ npm install github:acoyfellow/echo
 ```
 
 ```ts
-import { createEcho } from '@acoyfellow/echo';
+import { createEcho } from "@acoyfellow/echo";
 
 const echo = createEcho({
-  workerBase: 'https://your-echo-worker.example',
-  appId: 'notes',
+  workerBase: "https://your-echo-worker.example",
+  appId: "notes",
 });
 
 echo.register({
   readState: {
-    description: 'Read the current document',
-    effect: 'read',
-    inputSchema: { type: 'object' },
+    description: "Read the current document",
+    effect: "read",
+    inputSchema: { type: "object" },
     run: () => readCurrentDocument(),
   },
   setDraft: {
-    description: 'Replace the current draft',
-    effect: 'mutation',
+    description: "Replace the current draft",
+    effect: "mutation",
     inputSchema: {
-      type: 'object',
-      properties: { text: { type: 'string' } },
-      required: ['text'],
+      type: "object",
+      properties: { text: { type: "string" } },
+      required: ["text"],
     },
     run: ({ text }, { operationId }) => saveDraft(text, operationId),
   },
@@ -78,8 +78,9 @@ One `echo_run` can do work that would otherwise take many tool calls:
 
 ```js
 const todos = await app.listTodos({});
-for (const todo of todos) if (!todo.completed) await app.setCompleted({ id: todo.id, completed: true });
-await app.addTodo({ text: 'Plan the next release' });
+for (const todo of todos)
+  if (!todo.completed) await app.setCompleted({ id: todo.id, completed: true });
+await app.addTodo({ text: "Plan the next release" });
 return app.listTodos({});
 ```
 

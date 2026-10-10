@@ -1,8 +1,19 @@
 import type { CapabilityGrant } from "./auth";
+import type { Json } from "./schema";
 
-export type CodemodeCall = { capability: string; operationId?: string; ok: boolean; error?: string };
+export type CodemodeCall = {
+  capability: string;
+  operationId?: string;
+  ok: boolean;
+  error?: string;
+};
 
-export type CodemodeResult = { ok: boolean; result?: unknown; error?: string; calls: CodemodeCall[] };
+export type CodemodeResult = {
+  ok: boolean;
+  result?: Json;
+  error?: string;
+  calls: CodemodeCall[];
+};
 
 export function operationPrefix(runId: string): string {
   return `run:${runId}`;
@@ -15,12 +26,22 @@ function identifier(name: string): string {
 }
 
 export function declareCapabilities(grants: CapabilityGrant[]): string {
-  const members = grants.map((grant) => `  ${JSON.stringify(grant.name)}(input: unknown): Promise<unknown>; // ${grant.effect}`);
+  const members = grants.map(
+    (grant) =>
+      `  ${JSON.stringify(grant.name)}(input: unknown): Promise<unknown>; // ${grant.effect}`,
+  );
+
   return `declare const app: {\n${members.join("\n")}\n};`;
 }
 
 export function codemodeModule(code: string, grants: CapabilityGrant[]): string {
-  const bindings = grants.map((grant) => `app${identifier(grant.name)} = (input) => unwrap(${JSON.stringify(grant.name)}, input);`).join("\n");
+  const bindings = grants
+    .map(
+      (grant) =>
+        `app${identifier(grant.name)} = (input) => unwrap(${JSON.stringify(grant.name)}, input);`,
+    )
+    .join("\n");
+
   return `export default {
   async fetch(request, env) {
     let sequence = 0;
@@ -46,5 +67,6 @@ ${code}
 
 export async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
