@@ -1,0 +1,47 @@
+README.md
+  s_abdc79bb78d525::t_f60caaac1a42b5 25
+build.mjs
+  s_abdc79bb78d525::t_88a8624d699a41 20
+e2e/examples.ts
+  s_abdc79bb78d525::t_f2d49090972a61 12-13,91
+e2e/site.ts
+  s_abdc79bb78d525::t_21a2789702b6de 7-8,55,109
+e2e/whiteboard.ts
+  s_abdc79bb78d525::t_2c012b2f4827e0 1-153
+examples/catalog.ts
+  s_abdc79bb78d525::t_f02ef2d6c9e821 33-43
+examples/whiteboard/App.svelte
+  s_abdc79bb78d525::t_54aa6c1a2c9301 1-500
+package.json
+  s_abdc79bb78d525::t_591cfd13708278 22
+receipts/whiteboard/chrome-local/receipt.json
+  s_abdc79bb78d525::t_99b4ef18505dad 1-258
+src/agent.ts
+  s_abdc79bb78d525::t_431dccfc3e93d8 34-35,46-47,169-186
+src/index.ts
+  s_abdc79bb78d525::t_57e6b4be8434ab 14,98-108
+src/ui/Examples.svelte
+  s_abdc79bb78d525::t_bde017a98446ff 5,7,22-23,31,33-65,67
+src/ui/Home.svelte
+  s_abdc79bb78d525::t_8920f98de82b8c 5-13,17-32,35-99,177,179-180,189,191-193,195-212,214-215,222,224-226,228-241,243-245,248-311,314-315,317-351,357-421,423-425,427-434,454,506-599
+src/ui/Mark.svelte
+  s_abdc79bb78d525::t_99492d551c428d 1-40
+src/ui/input.css
+  s_abdc79bb78d525::t_9549590394bec4 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "14e7c183124892e8564758df1e1cef0ce878870f",
+  "prompts": {},
+  "sessions": {
+    "s_abdc79bb78d525": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a11760-4414-7226-a9e4-34150b77bfc9",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
