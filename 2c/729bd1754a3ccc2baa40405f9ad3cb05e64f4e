@@ -1,0 +1,237 @@
+.prettierignore
+  s_abdc79bb78d525::t_c26cd98605664b 1-8
+.prettierrc.json
+  s_abdc79bb78d525::t_00030e031a2e09 1-5
+README.md
+  s_abdc79bb78d525::t_43fdd86f2d5997 38,41-42,47-49,53-54,56-58,81-83
+build.mjs
+  s_abdc79bb78d525::t_d7e238032d1d50 6-10
+bun.lock
+  s_abdc79bb78d525::t_8ced4c7f07c575 12,16,21-23,240-279,658-659,678-681,802,814-815
+client/index.ts
+  s_abdc79bb78d525::t_668a40e74119c5 1-5,8-12,14-15,17,20,22-34,38-39,44,46,52,55-86,89-95,97,103,107-120,130-137,140,143,149,161,163-165,168-172,174,176-191,193-194,197,210,215,219,222,229,234-238,240-244,247,249-250,252,255,258,261-264,266,269-279,281-296,298-309,311-315,321
+e2e/cdp.ts
+  s_abdc79bb78d525::t_a61b2f0dfa9c8a 1-52,55-102,104-155,158-195,198-208
+e2e/chrome.ts
+  s_abdc79bb78d525::t_4b4c80e7cc3187 1,3-4,7,9,12,14,16,21,23,26-28,30-31,34-36,48-53,57-63,65-67,72-77,79-87,93-98,100-103,105-108,110,112,116
+e2e/codemode-run.ts
+  s_abdc79bb78d525::t_94bf06c7d0ec1a 1,3-4,7,9,12,14,16-18,20-22,35,37,40-41,44,46,49-50,52,54-55,58,60-70,73-77,79-86,88-90,92-108,114,116,120-121,123-128,130-134,136-139,141,143,148-151,153
+e2e/examples.ts
+  s_abdc79bb78d525::t_315acbcc4a2505 1,3,6,9,11,19-20,23-26,30-36,44-50,53-56,58-85,87-90,92
+e2e/safari.ts
+  s_abdc79bb78d525::t_a002a72006d4f6 3-23,26,28,30,33,39-41,43,47-51,55-60,62-69,72-77,79,82-83,88,91,98,100-105,107-111,113-122,124-130,134-139,141-152,154,157-168,170-184,189-210,212-215,217,219,221-223
+e2e/site.ts
+  s_abdc79bb78d525::t_d7fa86b052e834 1-2,5,7-9,12,17-18,21-36,42-77,79-95,97-101,103-112,114-116,118
+examples/ArcadeApp.svelte
+  s_abdc79bb78d525::t_ee203905c220c4 3-4,9-28,30,32,34,36,38,40,42,45-47,50,58,81,89-91,93-109,111,116-257,259-295
+examples/ExampleFooter.svelte
+  s_abdc79bb78d525::t_c3335914d0c9bc 5,7,9,13-29
+examples/catalog.ts
+  s_abdc79bb78d525::t_527001da067adc 13-177
+examples/notes/App.svelte
+  s_abdc79bb78d525::t_de3d150acc1ef7 3,8,10,12,14,16,18,21-34,39,60,66,68-69,71,74,88-92,98-108,110-111,118-123,125,127,132,134-137,139,141,144,146,154-159,161-202
+examples/render-index.ts
+  s_abdc79bb78d525::t_acfd78e25b442d 3-7,12-14
+examples/todo/App.svelte
+  s_abdc79bb78d525::t_40ab7a67a7ab94 3,8-18,24,26,28,30,32,34,36,39,45-56,59,62,65,71,74-75,77,81,85,91-92,101,104,118,130-131,139,150-156,161-169,176-182,185-186,190-192,194-219,221-239,243-283
+oxlint.config.ts
+  s_abdc79bb78d525::t_4d5acc661282a4 1-37
+package.json
+  s_abdc79bb78d525::t_35ec8beb0e605d 27-31,37-38,42,47-49
+public/favicon.svg
+  s_abdc79bb78d525::t_a52eca60431836 1
+public/icons/cf-agents.svg
+  s_4f3d73861137de::t_09b5ba09ae5bb1 1
+public/icons/cf-durable-objects.svg
+  s_4f3d73861137de::t_f8d3a6c15d2bcd 1
+public/icons/cf-dynamic-workers.svg
+  s_4f3d73861137de::t_9da463ae3fbaaf 1
+public/icons/cf-workers.svg
+  s_4f3d73861137de::t_a05a2227325dde 1
+public/manifest.webmanifest
+  s_abdc79bb78d525::t_ca506e27bbd2a9 1-15
+scripts/check-examples-e2e.ts
+  s_abdc79bb78d525::t_e3d64de9a5ce11 4,6-24,27,30,35,38,40,46
+scripts/check-site-e2e.ts
+  s_abdc79bb78d525::t_c6a712b4e1402d 4,6,8-23,26,29,34,37,39,45
+scripts/deploy-production.ts
+  s_abdc79bb78d525::t_744ecd5adaf48d 4,11,16,18,20,22-43
+scripts/pi-mcp-proxy.ts
+  s_abdc79bb78d525::t_fcdc7350b3b3e0 1-18,25,33,35-36,41,43-56,58-71,73,79-82,84-90,99,102,105-107,110,114,116,118-120,123,126-128,130-133
+scripts/serve-cross-origin.ts
+  s_abdc79bb78d525::t_d7f7ff94959d8f 1-5,13-21
+scripts/verify-extension-free.ts
+  s_abdc79bb78d525::t_3edd8c74fccf64 1-16,23,28-29,33,35-42,48,50-57,61-73,76-78,87-89
+scripts/verify-production.ts
+  s_abdc79bb78d525::t_17f5cdbd26523e 1-28,32,34,39,45,47-50,54,56-61,64,70-77,88-90,96-97,100-106,109-115,117-127,129-131,133-139,142-143,145-150,153-155,162
+scripts/verify-reviews.ts
+  s_abdc79bb78d525::t_83e6c41a1fab34 1,5,7,9,13-14,18-30,33-40,45-47,49-53,55-57,65
+src/agent.ts
+  s_abdc79bb78d525::t_190da33d96826d 4,7-12,26,35-42,50-98,103-104,107,110-114,116,128-132,134-138,140-141,147,149,151,155,157,159-162,164,167,170-174,176,179-186,191-192,198,201-212,216-234,236,238-241,244,247-250,253,256-259,262,269,271-279,282-285,288
+src/auth.ts
+  s_abdc79bb78d525::t_ae8f1048475481 2,6-9,12-19,21,28-31,37,39,45,53-61,66,70-76,79,88-95,99-109,111,114-124,126,129,131,133-156
+src/body.ts
+  s_abdc79bb78d525::t_f09fbbf911da69 7,10,13,16,19
+src/codemode-source.ts
+  s_abdc79bb78d525::t_89a011f8f84741 2,4-9,11-16,29-33,38-44,70
+src/codemode.ts
+  s_abdc79bb78d525::t_2f7ddbd37c00e6 2,5-13,16-20,23-25,28-36,51-58,60-73,76-78,82
+src/index.ts
+  s_abdc79bb78d525::t_d9ca3120cf423e 8,18,23-95,98-106,108-117,121-132,136,138-139,141,144,146-147,149,152,155-157,162,164-166,168-170,176,181,183
+src/mcp.ts
+  s_4f65335ba8955f::t_b76194c0c20ba9 6-13,62-63,66-68,70,72-78,81,84,88,102-105,109-110,113-122,124-129,131-138,141-153,155-176,179,181-186
+src/schema.ts
+  s_4f65335ba8955f::t_d9179e92a17233 1-99
+src/sessions.ts
+  s_4f65335ba8955f::t_5839ab8c9696ac 1,3,6-8,11-15,17,27,31-34,36-39,45-60,62-74
+src/site.ts
+  s_abdc79bb78d525::t_4af36252b035d0 5-9,14-20
+src/svelte.d.ts
+  s_abdc79bb78d525::t_15318ab9cd1898 3
+src/types.ts
+  s_abdc79bb78d525::t_bff72e56dc5e57 14
+src/ui/Examples.svelte
+  s_abdc79bb78d525::t_c02c32fad69813 6,9-11,14-85
+src/ui/Home.svelte
+  s_abdc79bb78d525::t_d36d3c317f2ded 4,10-72,75-83,86-97,100-216,218-264,266-289
+src/ui/highlight.ts
+  s_abdc79bb78d525::t_b4e738dcf162c4 1-59
+src/ui/input.css
+  s_abdc79bb78d525::t_b3e530c953f77e 15-21,25-40,44-57,61-63,66-77,80-86
+src/worker-env.ts
+  s_abdc79bb78d525::t_8cea824d7c38c0 1-13
+tests/auth.test.ts
+  s_abdc79bb78d525::t_a86e034d5f751b 2-7,10,12,14,38-47,59-65
+tests/body.test.ts
+  s_abdc79bb78d525::t_6871ccbc6e53f0 7,16-21,27-32
+tests/client.test.ts
+  s_abdc79bb78d525::t_80c756d6999137 2-3,7-8,11-26,31,38-43,49-57,64-65,69,78,82-83,85-86,103-110,119-126,133-141,143-151
+tests/codemode.test.ts
+  s_abdc79bb78d525::t_f51789d8d5d018 1,6,8,11,14-27,29-33,36,38-44,49,51-53,56-69,71-76,80-85,90-95,97-103,108-113,118-123
+tests/fixtures.ts
+  s_abdc79bb78d525::t_a389cd992269b2 1-40
+tests/mcp.test.ts
+  s_abdc79bb78d525::t_6a15f05adb402d 3-15,19-21,24-26,32-41,52-60,66-74,80,88-96
+tests/pi-mcp-proxy.test.ts
+  s_abdc79bb78d525::t_5dfbbaab935755 2,5-6,11-12,14,28,37,47-52,56-70
+tests/session.test.ts
+  s_abdc79bb78d525::t_d86e0a099a9fd8 2-3,8,10-20,22,24,28,34-40,44-47,59,73-90,94-122
+tools/oxlint/anti-slop/LICENSE
+  s_abdc79bb78d525::t_a0f0b025f3f74b 1-21
+tools/oxlint/anti-slop/UPSTREAM
+  s_abdc79bb78d525::t_28125912aa8c40 1
+tools/oxlint/anti-slop/effect/index.ts
+  s_abdc79bb78d525::t_fbe81b133b5b48 1-21
+tools/oxlint/anti-slop/effect/rules/no-manual-effect-error-tag.ts
+  s_abdc79bb78d525::t_b35cb34abc0dcd 1-52
+tools/oxlint/anti-slop/effect/rules/no-manual-tag-comparison.ts
+  s_abdc79bb78d525::t_db665633ded9a1 1-45
+tools/oxlint/anti-slop/effect/rules/no-manual-tagged-construction.ts
+  s_abdc79bb78d525::t_8d34e8cfe85129 1-37
+tools/oxlint/anti-slop/effect/rules/no-service-constructor-imports.ts
+  s_abdc79bb78d525::t_6879492f39df63 1-52
+tools/oxlint/anti-slop/effect/rules/prefer-effect-match.ts
+  s_abdc79bb78d525::t_c54a0fd8693450 1-54
+tools/oxlint/anti-slop/effect/shared/tagged-values.ts
+  s_abdc79bb78d525::t_27eede17bf895e 1-97
+tools/oxlint/anti-slop/index.ts
+  s_abdc79bb78d525::t_b8258851e24599 1-47
+tools/oxlint/anti-slop/rules/no-array-filter-map.ts
+  s_abdc79bb78d525::t_2f3eb54c64eaff 1-28
+tools/oxlint/anti-slop/rules/no-chained-type-assertions.ts
+  s_abdc79bb78d525::t_fc2da283b4e348 1-77
+tools/oxlint/anti-slop/rules/no-conditional-empty-object-spread.ts
+  s_abdc79bb78d525::t_ba2c4b382045ad 1-49
+tools/oxlint/anti-slop/rules/no-known-value-widening.ts
+  s_abdc79bb78d525::t_f1448d176407d9 1-415
+tools/oxlint/anti-slop/rules/no-module-mocking.ts
+  s_abdc79bb78d525::t_afee5c83608d6c 1-80
+tools/oxlint/anti-slop/rules/no-object-parameters.ts
+  s_abdc79bb78d525::t_0bd6c8d8136b35 1-83
+tools/oxlint/anti-slop/rules/no-reduce-accumulator-copy.ts
+  s_abdc79bb78d525::t_a3167b99ff9552 1-109
+tools/oxlint/anti-slop/rules/no-reflect-apply.ts
+  s_abdc79bb78d525::t_c69d72c4fb8f69 1-28
+tools/oxlint/anti-slop/rules/no-reflect-get.ts
+  s_abdc79bb78d525::t_10a3c402cbda79 1-28
+tools/oxlint/anti-slop/rules/no-runtime-typeof.ts
+  s_abdc79bb78d525::t_919f8c451418a7 1-77
+tools/oxlint/anti-slop/rules/no-shape-in-symbol-names.ts
+  s_abdc79bb78d525::t_282239be4d58ba 1-46
+tools/oxlint/anti-slop/rules/no-unknown-parameters.ts
+  s_abdc79bb78d525::t_ffa289d0f1776f 1-69
+tools/oxlint/anti-slop/rules/no-unknown-returns.ts
+  s_abdc79bb78d525::t_ddfce2120d63a6 1-82
+tools/oxlint/anti-slop/rules/no-unknown-type-aliases.ts
+  s_abdc79bb78d525::t_d571d8240faa56 1-54
+tools/oxlint/anti-slop/rules/no-unsafe-dictionary-type.ts
+  s_abdc79bb78d525::t_62dd6415871bf7 1-154
+tools/oxlint/anti-slop/rules/no-widen-then-assert.ts
+  s_abdc79bb78d525::t_bdc24ca791c7cf 1-366
+tools/oxlint/anti-slop/rules/require-readable-spacing.ts
+  s_abdc79bb78d525::t_786117c0f4da26 1-47
+tools/oxlint/anti-slop/rules/require-safety-comment-for-type-assertion.ts
+  s_abdc79bb78d525::t_f65be62589173c 1-131
+tools/oxlint/anti-slop/shared/array-method.ts
+  s_abdc79bb78d525::t_faa529628c6e57 1-94
+tools/oxlint/anti-slop/shared/dictionary-types.ts
+  s_abdc79bb78d525::t_f283e5708c37c7 1-515
+tools/oxlint/anti-slop/shared/function-parameters.ts
+  s_abdc79bb78d525::t_571ba9890a826f 1-49
+tools/oxlint/anti-slop/shared/lexical-type-parameters.ts
+  s_abdc79bb78d525::t_d41a6c1634b4aa 1-61
+tools/oxlint/anti-slop/shared/reflect-method.ts
+  s_abdc79bb78d525::t_d6948430b6e93f 1-24
+tools/oxlint/anti-slop/shared/scope.ts
+  s_abdc79bb78d525::t_f0b393111b0944 1-15
+tools/oxlint/anti-slop/shared/type-alias-resolution.ts
+  s_abdc79bb78d525::t_b886eab8d19503 1-250
+tools/oxlint/anti-slop/vendor/eslint-stylistic/LICENSE
+  s_abdc79bb78d525::t_e825659ed45899 1-22
+tools/oxlint/anti-slop/vendor/eslint-stylistic/UPSTREAM.md
+  s_abdc79bb78d525::t_aa8f2644f3de6b 1-28
+tools/oxlint/anti-slop/vendor/eslint-stylistic/padding-line-ast.ts
+  s_abdc79bb78d525::t_7c6dab6758cf80 1-51
+tools/oxlint/anti-slop/vendor/eslint-stylistic/padding-line-between-statements.ts
+  s_abdc79bb78d525::t_d37426e304abc2 1-906
+tools/oxlint/anti-slop/vendor/eslint-stylistic/padding-line-options.d.ts
+  s_abdc79bb78d525::t_f7536199966431 1-87
+tsconfig.scripts.json
+  s_abdc79bb78d525::t_ec3d4bbdee266a 6-7,13
+wrangler.jsonc
+  s_abdc79bb78d525::t_426c97f72e0f79 12,16,18-19,22-23
+wrangler.production.jsonc
+  s_abdc79bb78d525::t_642c087592ebb5 9,13,17,19-20,23-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "2c729bd1754a3ccc2baa40405f9ad3cb05e64f4e",
+  "prompts": {},
+  "sessions": {
+    "s_4f3d73861137de": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019febf7-4b34-7b21-970a-5f277fcc20a8",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    },
+    "s_4f65335ba8955f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a0428c-86e7-7e26-bc73-8a8b9b5c6d7f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    },
+    "s_abdc79bb78d525": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a11760-4414-7226-a9e4-34150b77bfc9",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
